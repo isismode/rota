@@ -142,8 +142,11 @@
   .checkrow .obs-input{width:150px; font-size:12px; padding:6px 8px; flex-shrink:0;}
 
   .route-table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+  .route-header{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fbfbfc; color:var(--ink); padding:12px 16px; border-bottom:2px solid var(--blue); border-radius:10px 10px 0 0;}
+  .route-date-input{font-family:var(--sans); font-weight:700; font-size:13.5px; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px 9px; background:#fff;}
+  .route-header-name{font-family:var(--sans); font-weight:800; font-size:15px; letter-spacing:.01em;}
+  .print-only{display:none;}
   .route-table{width:100%; border-collapse:collapse; min-width:560px;}
-  .route-table caption{text-align:left; font-family:var(--sans); font-weight:800; font-size:15px; padding:12px 16px; background:#fbfbfc; color:var(--ink); letter-spacing:.01em; border-bottom:2px solid var(--blue);}
   .route-table th{background:#eef0f3; text-transform:none; font-size:13px; padding:10px 14px; letter-spacing:0; color:var(--ink);}
   .route-table td{padding:9px 14px; font-size:13.5px; color:var(--ink);}
   .route-table .meta-row td{font-size:12.5px; color:var(--ink); background:#f7f8fa; padding:9px 14px;}
@@ -178,6 +181,7 @@
 
   @media print{
     .side, .topbar, .toolbar, .no-print{display:none !important;}
+    .print-only{display:inline !important;}
     .main{padding:0; max-width:100%;}
     body{background:#fff;}
   }
@@ -762,6 +766,43 @@ function enviarWhatsApp(routeId){
   window.open(url, '_blank');
 }
 
+function voltarItem(pedidoId){
+  const original = state.pedidos.find(x=>x.id===pedidoId);
+  if(!original) return;
+  if(!confirm(`Confirma que só "${original.produto}" voltou de ${original.rede} ${original.loja}? Os demais produtos dessa loja nesta rota serão marcados como entregues, e este item volta pendente para a triagem de amanhã.`)) return;
+
+  // 1) finaliza os outros produtos da mesma rede+loja dentro desta mesma rota
+  state.pedidos.forEach(p=>{
+    if(p.id!==original.id && p.routeId===original.routeId && p.rede===original.rede && p.loja===original.loja && p.status!=='entregue'){
+      p.status='entregue';
+    }
+  });
+
+  // 2) o item devolvido fica registrado como "devolvido" (histórico, some do Roteiro do dia)
+  original.status='devolvido';
+
+  // 3) duplica um novo pedido pendente, só com o produto devolvido, para a triagem de amanhã
+  const amanha = new Date();
+  amanha.setDate(amanha.getDate()+1);
+  const dataAmanha = amanha.toISOString().slice(0,10);
+  state.pedidos.push({
+    id: uid(),
+    data: dataAmanha,
+    rede: original.rede,
+    loja: original.loja,
+    produto: original.produto,
+    comprador: original.comprador || '',
+    status: 'pendente',
+    routeId: null,
+    obsRota: '',
+    dataAgendamento: '',
+    linkPortal: original.linkPortal || ''
+  });
+
+  save();
+  renderRoteiro(); renderPedidosTable(); renderStats(); renderFinalizados();
+}
+
 function renderRoteiro(){
   const data = document.getElementById('rt-data').value || todayStr();
   const rotas = state.rotas.filter(r=>r.data===data);
@@ -786,14 +827,19 @@ function renderRoteiro(){
           ${s.linkPortal ? `<button class="btn sm ghost btn-portal" data-portal="${esc(s.linkPortal)}" title="Abrir link do portal">🔗</button>` : ''}
           ${s.status!=='entregue' ? `<button class="btn sm ghost" data-entregue="${s.id}">Entregue</button>` : ''}
           <button class="btn sm danger" data-voltou="${s.id}">Voltou</button>
+          <button class="btn sm danger" data-voltou-item="${s.id}" title="Só este produto voltou — os outros da loja viram entregues e este é reagendado para amanhã">Voltou item</button>
         </td>
       </tr>
     `).join('') : `<tr><td colspan="${colCount}"><div class="empty">Nenhum pedido nesta rota ainda.</div></td></tr>`;
 
     return `
       <div class="route-table-wrap" style="margin-bottom:20px;">
+        <div class="route-header">
+          <input type="date" class="route-date-input no-print" data-route-date="${r.id}" value="${r.data}" title="Alterar a data desta rota">
+          <span class="route-date-print print-only">${fmtDate(r.data)}</span>
+          <span class="route-header-name"> — ${esc(r.nome)}</span>
+        </div>
         <table class="route-table">
-          <caption>${fmtDate(r.data)} — ${esc(r.nome)}</caption>
           <tr class="meta-row"><td colspan="${colCount}">
             ${r.motorista? '<b>Motorista:</b> '+esc(r.motorista)+' &nbsp;·&nbsp; ':''}
             ${r.ajudante? '<b>Ajudante:</b> '+esc(r.ajudante)+' &nbsp;·&nbsp; ':''}
@@ -815,6 +861,21 @@ function renderRoteiro(){
     `;
   }).join('');
 
+  container.querySelectorAll('[data-route-date]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const novaData = inp.value;
+      if(!novaData) return;
+      const r = state.rotas.find(x=>x.id===inp.dataset.routeDate);
+      if(!r) return;
+      r.data = novaData;
+      // atualiza a data de todos os pedidos que pertencem a esta rota de uma vez
+      state.pedidos.forEach(p=>{ if(p.routeId===r.id) p.data = novaData; });
+      document.getElementById('rt-data').value = novaData;
+      save();
+      renderRoteiro();
+      renderPedidosTable();
+    });
+  });
   container.querySelectorAll('[data-portal]').forEach(btn=>{
     btn.addEventListener('click', ()=> window.open(btn.dataset.portal, '_blank'));
   });
@@ -823,6 +884,9 @@ function renderRoteiro(){
       const p = state.pedidos.find(x=>x.id===btn.dataset.entregue);
       if(p){ p.status='entregue'; save(); renderRoteiro(); renderPedidosTable(); renderStats(); }
     });
+  });
+  container.querySelectorAll('[data-voltou-item]').forEach(btn=>{
+    btn.addEventListener('click', ()=> voltarItem(btn.dataset.voltouItem));
   });
   container.querySelectorAll('[data-voltou]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
