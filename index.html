@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ISISLog — Sua rota simplificada</title>
+
+<!-- PWA / instalação como app -->
+<meta name="theme-color" content="#14151b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ISISLog">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --graphite:#14151b;
+    --graphite-2:#1d1e28;
+    --blue:#2f5cff;
+    --blue-dark:#1c3fd6;
+    --blue-bg:#e9eeff;
+    --violet:#8b2eff;
+    --violet-soft:#b98bff;
+    --violet-bg:#f2e8ff;
+    --side-bg:#f8f9fa;
+    --paper:#f4f6f8;
+    --card:#ffffff;
+    --line:#e2e4e9;
+    --ink:#111318;
+    --muted:#5b6270;
+    --green:#3e8f5c;
+    --green-bg:#e6f3ea;
+    --red:#c0503f;
+    --red-bg:#faeae7;
+    --whatsapp:#25d366;
+    --whatsapp-dark:#1da851;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+  }
+  .shell{display:flex; min-height:100vh;}
+
+  /* ---------- MENU LATERAL (claro, moderno, acentos azul/roxo) ---------- */
+  .side{
+    width:240px; background:var(--side-bg); border-right:1px solid var(--line); flex-shrink:0;
+    padding:22px 0; display:flex; flex-direction:column; gap:3px;
+  }
+  .side-logo{
+    padding:0 24px 20px; margin-bottom:14px; border-bottom:1px solid var(--line);
+    font-family:var(--sans); font-size:19px; line-height:1.25;
+  }
+  .side-logo span{display:block;}
+  .side-logo .l1{color:var(--ink); font-weight:600;}
+  .side-logo .l2{color:var(--blue); font-weight:800;}
+  .navbtn{
+    width:auto; text-align:left; background:none; border:none; color:#4b5160; padding:13px 24px;
+    font-size:14px; cursor:pointer; border-left:3px solid transparent; display:flex; flex-direction:row;
+    align-items:center; gap:11px; font-family:var(--sans); line-height:1.2;
+  }
+  .navbtn:hover{ color:var(--blue); background:var(--blue-bg); }
+  .navbtn.active{ color:var(--blue); background:var(--blue-bg); border-left-color:var(--blue); font-weight:700; }
+  .navbtn .dot{width:7px;height:7px;border-radius:50%;background:#c3c8d1; flex-shrink:0;}
+  .navbtn.active .dot{background:var(--blue);}
+  .navbtn:hover .dot{background:var(--violet);}
+
+  /* ---------- TOPO (claro, integrado ao miolo) ---------- */
+  .content-col{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{
+    background:var(--paper);
+    color:var(--ink); padding:22px 34px 18px; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap; gap:8px;
+  }
+  .topbar-brand{display:flex; flex-direction:column; gap:2px;}
+  .topbar-title{font-family:var(--sans); font-weight:800; font-size:26px; letter-spacing:-.01em; line-height:1;}
+  .topbar-title .isis-part{color:var(--ink);}
+  .topbar-title .log-part{color:var(--blue);}
+  .topbar-slogan{font-family:var(--sans); font-weight:500; font-size:12.5px; color:var(--violet); letter-spacing:.01em;}
+  .topbar-status{font-size:11.5px; color:var(--muted); background:#fff; padding:6px 13px; border-radius:20px; border:1px solid var(--line); white-space:nowrap;}
+
+  /* ---------- ÁREA DE TRABALHO (clara, texto preto nítido) ---------- */
+  .main{flex:1; padding:8px 34px 60px; max-width:1180px;}
+  h1{font-family:var(--sans); font-size:22px; font-weight:800; margin:0 0 3px; letter-spacing:-.01em; color:var(--ink);}
+  .sub{color:var(--muted); font-size:13px; margin-bottom:22px;}
+
+  .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px;}
+  input,select,textarea{
+    font-family:var(--sans); font-size:13.5px; padding:8px 10px; border:1px solid var(--line);
+    border-radius:6px; background:#fff; color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-bg); border-color:var(--blue);}
+  label{font-size:11.5px; color:var(--muted); display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:.03em;}
+  .field{display:flex; flex-direction:column; gap:0;}
+
+  button.btn{
+    font-family:var(--sans); font-size:13px; font-weight:600; padding:9px 15px; border-radius:6px;
+    border:1px solid var(--ink); background:var(--ink); color:#fff; cursor:pointer;
+  }
+  button.btn:hover{background:#2a2d38;}
+  button.btn.amber{background:var(--blue); border-color:var(--blue-dark); color:#fff;}
+  button.btn.amber:hover{background:var(--blue-dark);}
+  button.btn.ghost{background:#fff; color:var(--ink); border-color:var(--line);}
+  button.btn.ghost:hover{background:#f0f1f4;}
+  button.btn.sm{padding:5px 10px; font-size:12px;}
+  button.btn.danger{background:var(--red-bg); color:var(--red); border-color:#eccfc9;}
+  button.btn.whatsapp{background:var(--whatsapp); border-color:var(--whatsapp-dark); color:#fff; font-weight:700;}
+  button.btn.whatsapp:hover{background:var(--whatsapp-dark);}
+  button.btn:disabled{opacity:.4; cursor:not-allowed;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:18px; box-shadow:0 2px 10px rgba(17,19,24,.05);}
+  .card h2{font-size:14.5px; margin:0 0 14px; display:flex; align-items:center; gap:8px; color:var(--ink); font-weight:700;}
+  .grid-form{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end;}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--line);}
+  td{padding:9px 10px; border-bottom:1px solid #eef0f3; vertical-align:middle; color:var(--ink);}
+  tr:last-child td{border-bottom:none;}
+
+  .badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.02em;}
+  .badge.pendente{background:var(--violet-bg); color:var(--violet);}
+  .badge.roteirizado{background:var(--blue-bg); color:var(--blue);}
+  .badge.entregue{background:var(--green-bg); color:var(--green);}
+  .badge.devolvido{background:var(--red-bg); color:var(--red);}
+
+  .empty{padding:30px; text-align:center; color:var(--muted); font-size:13px;}
+  .empty b{display:block; color:var(--ink); font-size:14px; margin-bottom:4px;}
+
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .checklist{max-height:65vh; overflow:auto; border:1px solid var(--line); border-radius:8px;}
+  .checkrow{display:flex; align-items:center; gap:9px; padding:9px 10px; border-bottom:1px solid #eef0f3; font-size:13px;}
+  .checkrow:hover{background:#fafbfc;}
+  .checkrow .titulo{font-weight:700; color:var(--ink); font-size:13.5px;}
+  .checkrow .produto-sub{color:var(--muted); font-size:12px; margin-top:1px;}
+  .checkrow label{flex:1; margin:0; text-transform:none; display:flex; flex-direction:column; gap:1px;}
+  .checkrow .obs-input{width:150px; font-size:12px; padding:6px 8px; flex-shrink:0;}
+
+  .route-table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+  .route-table{width:100%; border-collapse:collapse; min-width:560px;}
+  .route-table caption{text-align:left; font-family:var(--sans); font-weight:800; font-size:15px; padding:12px 16px; background:#fbfbfc; color:var(--ink); letter-spacing:.01em; border-bottom:2px solid var(--blue);}
+  .route-table th{background:#eef0f3; text-transform:none; font-size:13px; padding:10px 14px; letter-spacing:0; color:var(--ink);}
+  .route-table td{padding:9px 14px; font-size:13.5px; color:var(--ink);}
+  .route-table .meta-row td{font-size:12.5px; color:var(--ink); background:#f7f8fa; padding:9px 14px;}
+  .route-table .meta-row b{color:var(--ink); font-weight:700;}
+  .route-table .obs-cell{color:var(--muted); font-style:italic; font-size:12.5px;}
+  .rowactions{display:flex; gap:6px; justify-content:flex-end;}
+  .route-actions-bar{display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#f7f8fa; border-top:1px solid var(--line);}
+
+  .tag-produto{display:inline-block; background:#eef0f3; border-radius:5px; padding:1px 7px; font-size:12px; margin:1px 3px 1px 0; color:var(--ink);}
+
+  .flexbar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
+  .stat{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:20px;}
+  .stat .box{background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 18px; min-width:120px; border-top:3px solid var(--blue);}
+  .stat .box .n{font-size:22px; font-weight:800; font-family:var(--mono); color:var(--ink);}
+  .stat .box .l{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:2px;}
+
+  .banner{
+    background:var(--violet-bg); border:1px solid #dfc4ff; color:#5c1fa8; border-radius:8px;
+    padding:12px 16px; font-size:13px; margin-bottom:18px; line-height:1.5;
+  }
+  .banner code{background:#00000012; padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:12px;}
+  .banner.error{background:var(--red-bg); border-color:#eccfc9; color:var(--red);}
+  .banner.ok{background:var(--green-bg); border-color:#cfe6d7; color:var(--green);}
+
+  .checkbox-line{display:flex; align-items:center; gap:7px; font-size:13px; text-transform:none; color:var(--ink);}
+  .checkbox-line input{width:auto;}
+
+  ::-webkit-scrollbar{height:8px; width:8px;}
+  ::-webkit-scrollbar-thumb{background:#d3d6dc; border-radius:8px;}
+
+  @media print{
+    .side, .topbar, .toolbar, .no-print{display:none !important;}
+    .main{padding:0; max-width:100%;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="side">
+    <div class="side-logo">
+      <span class="l1">Painel de</span>
+      <span class="l2">Roteiros</span>
+    </div>
+    <button class="navbtn active" data-tab="pedidos"><span class="dot"></span>Pedidos</button>
+    <button class="navbtn" data-tab="montar"><span class="dot"></span>Montar rota</button>
+    <button class="navbtn" data-tab="roteiro"><span class="dot"></span>Roteiro do dia</button>
+    <button class="navbtn" data-tab="finalizados"><span class="dot"></span>Finalizados</button>
+  </div>
+
+  <div class="content-col">
+    <div class="topbar">
+      <div class="topbar-brand">
+        <span class="topbar-title"><span class="isis-part">ISIS</span><span class="log-part">Log</span></span>
+        <span class="topbar-slogan">Sua rota simplificada</span>
+      </div>
+      <div class="topbar-status" id="topbar-status">conectando...</div>
+    </div>
+
+  <div class="main">
+
+    <div id="config-banner"></div>
+
+    <!-- TAB PEDIDOS -->
+    <div id="tab-pedidos">
+      <h1>Pedidos</h1>
+      <div class="sub">Todo pedido que chega — de qualquer comprador, de qualquer rede — entra aqui primeiro. Assim que a entrega é confirmada, ele sai daqui e vai para "Finalizados".</div>
+
+      <div class="stat" id="stats"></div>
+
+      <div class="card">
+        <h2>+ Lançar pedido</h2>
+        <div class="grid-form">
+          <div class="field"><label>Data do pedido</label><input type="date" id="f-data"></div>
+          <div class="field"><label>Rede</label><input type="text" id="f-rede" placeholder="Ex: Redemix, Atakarejo..." list="redes-list"></div>
+          <div class="field"><label>Loja</label><input type="text" id="f-loja" placeholder="Ex: Lauro, Cabula..."></div>
+          <div class="field"><label>Produto / marca</label><input type="text" id="f-produto" placeholder="Ex: Cremosinho, Polpa..." list="produtos-list"></div>
+          <div class="field"><label>Comprador (opcional)</label><input type="text" id="f-comprador" placeholder="quem fez o pedido"></div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn amber" id="btn-add-pedido">Adicionar pedido</button>
+            <button class="btn ghost" id="btn-cancelar-edicao" style="display:none">Cancelar</button>
+          </div>
+        </div>
+        <datalist id="redes-list"></datalist>
+        <datalist id="produtos-list"></datalist>
+      </div>
+
+      <div class="card">
+        <div class="flexbar">
+          <h2 style="margin:0">Pedidos em aberto</h2>
+          <div class="toolbar" style="margin:0">
+            <select id="filtro-status">
+              <option value="">Status: todos</option>
+              <option value="pendente">Pendente</option>
+              <option value="roteirizado">Roteirizado</option>
+              <option value="devolvido">Devolvido</option>
+            </select>
+            <select id="filtro-rede"><option value="">Rede: todas</option></select>
+            <input type="text" id="filtro-busca" placeholder="Buscar loja ou produto...">
+          </div>
+        </div>
+        <table id="tabela-pedidos"><thead><tr>
+          <th>Data</th><th>Rede</th><th>Loja</th><th>Produto</th><th>Status</th><th></th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <!-- TAB MONTAR ROTA -->
+    <div id="tab-montar" style="display:none">
+      <h1>Montar rota</h1>
+      <div class="sub">Crie a rota do dia, defina caminhão / motorista / ajudante, e escolha quais pedidos pendentes entram nela.</div>
+
+      <div class="card">
+        <h2>Nova rota</h2>
+        <div class="grid-form">
+          <div class="field"><label>Data da rota</label><input type="date" id="r-data"></div>
+          <div class="field"><label>Nome da rota</label><input type="text" id="r-nome" placeholder="Ex: TGZ Adriel e Robenilson"></div>
+          <div class="field"><label>Caminhão</label><input type="text" id="r-caminhao" placeholder="placa / apelido"></div>
+          <div class="field"><label>Motorista</label><input type="text" id="r-motorista"></div>
+          <div class="field"><label>Ajudante</label><input type="text" id="r-ajudante"></div>
+          <div><button class="btn amber" id="btn-criar-rota">Criar rota</button></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label class="checkbox-line"><input type="checkbox" id="r-mostrar-produto" checked> Mostrar produto no espelho impresso desta rota</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flexbar">
+          <h2 style="margin:0">Rota selecionada</h2>
+          <select id="select-rota-editar"></select>
+        </div>
+        <div id="rota-editar-vazia" class="empty"><b>Nenhuma rota ainda</b>Crie uma rota acima para começar a adicionar pedidos a ela.</div>
+        <div id="rota-editar-conteudo" style="display:none">
+          <div class="flexbar">
+            <label class="checkbox-line"><input type="checkbox" id="chk-mostrar-produto"> Mostrar produto no espelho impresso desta rota</label>
+            <select id="filtro-rede-montar"><option value="">Rede: todas</option></select>
+          </div>
+          <div class="split">
+            <div>
+              <label>Pedidos pendentes disponíveis</label>
+              <div class="checklist" id="lista-pendentes"></div>
+            </div>
+            <div>
+              <label>Pedidos nesta rota (com observação)</label>
+              <div class="checklist" id="lista-na-rota"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB ROTEIRO DO DIA -->
+    <div id="tab-roteiro" style="display:none">
+      <h1>Roteiro do dia</h1>
+      <div class="sub">A tela final para enviar à logística. Marque "voltou" quando uma entrega não sai — o pedido retorna sozinho para pendentes, sem se perder.</div>
+
+      <div class="toolbar no-print">
+        <div class="field"><label>Data</label><input type="date" id="rt-data"></div>
+        <button class="btn ghost" id="btn-print">Imprimir / salvar PDF</button>
+        <button class="btn ghost" id="btn-copiar">Copiar tudo como texto</button>
+      </div>
+
+      <div id="roteiro-container"></div>
+    </div>
+
+    <!-- TAB FINALIZADOS -->
+    <div id="tab-finalizados" style="display:none">
+      <h1>Finalizados</h1>
+      <div class="sub">Pedidos já entregues. Saem do painel principal automaticamente para não ocupar espaço, mas ficam guardados aqui caso precise consultar ou reabrir por engano.</div>
+
+      <div class="card">
+        <div class="flexbar">
+          <h2 style="margin:0">Entregues</h2>
+          <div class="toolbar" style="margin:0">
+            <select id="filtro-rede-finalizados"><option value="">Rede: todas</option></select>
+            <input type="text" id="filtro-busca-finalizados" placeholder="Buscar loja ou produto...">
+          </div>
+        </div>
+        <table id="tabela-finalizados"><thead><tr>
+          <th>Data</th><th>Rede</th><th>Loja</th><th>Produto</th><th>Rota</th><th></th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<script>
+/* =======================================================================
+   CONFIGURAÇÃO — URL do Web App do Google Apps Script.
+   ======================================================================= */
+const API_URL = "https://script.google.com/macros/s/AKfycbysZUG9AiIDTMxlFOO2xFZoHd2iiqLuNBHoG_ahQXTwGyhutXGbH3nPZpdSxWEqfkyT/exec";
+/* ======================================================================= */
+
+let state = { pedidos: [], rotas: [] };
+let saving = false;
+let editingId = null;
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){ if(!d) return '-'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function apiConfigured(){
+  return API_URL && API_URL.indexOf("COLE_AQUI") === -1 && API_URL.trim() !== "";
+}
+
+function showBanner(html, type){
+  const box = document.getElementById('config-banner');
+  box.innerHTML = html ? `<div class="banner ${type||''}">${html}</div>` : '';
+}
+
+function setStatus(text){
+  document.getElementById('topbar-status').textContent = text;
+}
+
+// ---------- Carregar e salvar via Google Sheets ----------
+async function load(){
+  if(!apiConfigured()){
+    showBanner(
+      'Este arquivo ainda não está conectado a uma planilha. Cole a URL do seu Web App na linha <code>const API_URL = "..."</code> no início do JavaScript deste arquivo.',
+      ''
+    );
+    setStatus('não conectado');
+    render();
+    return;
+  }
+  setStatus('carregando...');
+  try{
+    const res = await fetch(API_URL, { method: 'GET' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    state = {
+      pedidos: Array.isArray(data.pedidos) ? data.pedidos : [],
+      rotas: Array.isArray(data.rotas) ? data.rotas : []
+    };
+    state.pedidos.forEach(p=>{ if(p.obsRota===undefined) p.obsRota=''; });
+    state.rotas.forEach(r=>{ if(r.mostrarProduto===undefined) r.mostrarProduto=true; });
+    showBanner('', '');
+    setStatus('conectado à planilha');
+  }catch(e){
+    console.error('Falha ao carregar da planilha', e);
+    showBanner('Não consegui carregar os dados da planilha agora. Verifique a URL do Web App e a conexão com a internet. Detalhe técnico: ' + esc(e.message), 'error');
+    setStatus('erro ao conectar');
+  }
+  render();
+}
+
+async function save(){
+  if(!apiConfigured()) return;
+  saving = true;
+  setStatus('salvando...');
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(state)
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    setStatus('salvo na planilha');
+  }catch(e){
+    console.error('Falha ao salvar na planilha', e);
+    showBanner('Não consegui salvar essa alteração na planilha. Verifique a conexão e tente novamente. Detalhe técnico: ' + esc(e.message), 'error');
+    setStatus('erro ao salvar');
+  }
+  saving = false;
+}
+
+// ---------- Navigation ----------
+document.querySelectorAll('.navbtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    ['pedidos','montar','roteiro','finalizados'].forEach(t=>{
+      document.getElementById('tab-'+t).style.display = (t===b.dataset.tab)?'block':'none';
+    });
+    if(b.dataset.tab==='montar') renderMontar();
+    if(b.dataset.tab==='roteiro') renderRoteiro();
+    if(b.dataset.tab==='finalizados') renderFinalizados();
+  });
+});
+
+// ---------- PEDIDOS TAB ----------
+document.getElementById('f-data').value = todayStr();
+document.getElementById('r-data').value = todayStr();
+document.getElementById('rt-data').value = todayStr();
+
+document.getElementById('btn-add-pedido').addEventListener('click', ()=>{
+  const data = document.getElementById('f-data').value || todayStr();
+  const rede = document.getElementById('f-rede').value.trim();
+  const loja = document.getElementById('f-loja').value.trim();
+  const produto = document.getElementById('f-produto').value.trim();
+  const comprador = document.getElementById('f-comprador').value.trim();
+  if(!rede || !loja || !produto){ alert('Preencha rede, loja e produto.'); return; }
+
+  if(editingId){
+    const p = state.pedidos.find(x=>x.id===editingId);
+    if(p){ p.data=data; p.rede=rede; p.loja=loja; p.produto=produto; p.comprador=comprador; }
+    sairDoModoEdicao();
+  } else {
+    state.pedidos.push({id:uid(), data, rede, loja, produto, comprador, status:'pendente', routeId:null, obsRota:''});
+    document.getElementById('f-loja').value=''; document.getElementById('f-produto').value=''; document.getElementById('f-comprador').value='';
+    document.getElementById('f-loja').focus();
+  }
+  save(); render();
+});
+
+document.getElementById('btn-cancelar-edicao').addEventListener('click', ()=>{
+  sairDoModoEdicao();
+});
+
+function iniciarEdicao(id){
+  const p = state.pedidos.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('f-data').value = p.data;
+  document.getElementById('f-rede').value = p.rede;
+  document.getElementById('f-loja').value = p.loja;
+  document.getElementById('f-produto').value = p.produto;
+  document.getElementById('f-comprador').value = p.comprador || '';
+  editingId = id;
+  document.getElementById('btn-add-pedido').textContent = 'Salvar alterações';
+  document.getElementById('btn-cancelar-edicao').style.display = 'inline-block';
+  document.getElementById('f-rede').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function sairDoModoEdicao(){
+  editingId = null;
+  document.getElementById('f-data').value = todayStr();
+  document.getElementById('f-rede').value = '';
+  document.getElementById('f-loja').value = '';
+  document.getElementById('f-produto').value = '';
+  document.getElementById('f-comprador').value = '';
+  document.getElementById('btn-add-pedido').textContent = 'Adicionar pedido';
+  document.getElementById('btn-cancelar-edicao').style.display = 'none';
+}
+
+['filtro-status','filtro-rede','filtro-busca'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderPedidosTable);
+});
+
+function renderStats(){
+  const box = document.getElementById('stats');
+  const p = state.pedidos;
+  const c = s => p.filter(x=>x.status===s).length;
+  box.innerHTML = `
+    <div class="box"><div class="n">${c('pendente')}</div><div class="l">Pendentes</div></div>
+    <div class="box"><div class="n">${c('roteirizado')}</div><div class="l">Roteirizados</div></div>
+    <div class="box"><div class="n">${c('entregue')}</div><div class="l">Finalizados</div></div>
+    <div class="box"><div class="n">${c('devolvido')}</div><div class="l">Devolvidos hoje</div></div>
+  `;
+}
+
+function fillDatalists(){
+  const redes = [...new Set(state.pedidos.map(p=>p.rede))];
+  const produtos = [...new Set(state.pedidos.map(p=>p.produto))];
+  document.getElementById('redes-list').innerHTML = redes.map(r=>`<option value="${esc(r)}">`).join('');
+  document.getElementById('produtos-list').innerHTML = produtos.map(p=>`<option value="${esc(p)}">`).join('');
+
+  const filtroRede = document.getElementById('filtro-rede');
+  let cur = filtroRede.value;
+  filtroRede.innerHTML = '<option value="">Rede: todas</option>' + redes.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  filtroRede.value = cur;
+
+  const filtroRedeMontar = document.getElementById('filtro-rede-montar');
+  cur = filtroRedeMontar.value;
+  filtroRedeMontar.innerHTML = '<option value="">Rede: todas</option>' + redes.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  filtroRedeMontar.value = cur;
+
+  const filtroRedeFin = document.getElementById('filtro-rede-finalizados');
+  cur = filtroRedeFin.value;
+  filtroRedeFin.innerHTML = '<option value="">Rede: todas</option>' + redes.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  filtroRedeFin.value = cur;
+}
+
+function renderPedidosTable(){
+  const status = document.getElementById('filtro-status').value;
+  const rede = document.getElementById('filtro-rede').value;
+  const busca = document.getElementById('filtro-busca').value.toLowerCase();
+  let list = state.pedidos.filter(p=>{
+    if(p.status==='entregue') return false;
+    if(status && p.status!==status) return false;
+    if(rede && p.rede!==rede) return false;
+    if(busca && !(p.loja.toLowerCase().includes(busca) || p.produto.toLowerCase().includes(busca))) return false;
+    return true;
+  });
+  list.sort((a,b)=> (b.data||'').localeCompare(a.data||'') || a.rede.localeCompare(b.rede) || a.loja.localeCompare(b.loja));
+
+  const tbody = document.querySelector('#tabela-pedidos tbody');
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><b>Nada por aqui</b>Ajuste os filtros ou lance um novo pedido acima.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p=>`
+    <tr>
+      <td>${fmtDate(p.data)}</td>
+      <td>${esc(p.rede)}</td>
+      <td>${esc(p.loja)}</td>
+      <td>${esc(p.produto)}</td>
+      <td><span class="badge ${p.status}">${p.status}</span></td>
+      <td class="rowactions">
+        <button class="btn sm ghost" data-edit="${p.id}">Editar</button>
+        ${p.status==='pendente' ? `<button class="btn sm danger" data-del="${p.id}">Excluir</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  tbody.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(confirm('Excluir este pedido?')){
+        state.pedidos = state.pedidos.filter(p=>p.id!==btn.dataset.del);
+        save(); render();
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=> iniciarEdicao(btn.dataset.edit));
+  });
+}
+
+// ---------- FINALIZADOS TAB ----------
+['filtro-rede-finalizados','filtro-busca-finalizados'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderFinalizados);
+});
+
+function renderFinalizados(){
+  const rede = document.getElementById('filtro-rede-finalizados').value;
+  const busca = document.getElementById('filtro-busca-finalizados').value.toLowerCase();
+  let list = state.pedidos.filter(p=>{
+    if(p.status!=='entregue') return false;
+    if(rede && p.rede!==rede) return false;
+    if(busca && !(p.loja.toLowerCase().includes(busca) || p.produto.toLowerCase().includes(busca))) return false;
+    return true;
+  });
+  list.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+
+  const tbody = document.querySelector('#tabela-finalizados tbody');
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><b>Nenhum pedido finalizado ainda</b>Assim que marcar uma entrega como "Entregue" no Roteiro do dia, ela aparece aqui.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p=>{
+    const rota = state.rotas.find(r=>r.id===p.routeId);
+    return `
+      <tr>
+        <td>${fmtDate(p.data)}</td>
+        <td>${esc(p.rede)}</td>
+        <td>${esc(p.loja)}</td>
+        <td>${esc(p.produto)}</td>
+        <td>${rota ? esc(rota.nome) : '-'}</td>
+        <td class="rowactions"><button class="btn sm ghost" data-reabrir="${p.id}">Reabrir</button></td>
+      </tr>
+    `;
+  }).join('');
+  tbody.querySelectorAll('[data-reabrir]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = state.pedidos.find(x=>x.id===btn.dataset.reabrir);
+      if(p && confirm('Reabrir este pedido como pendente?')){
+        p.status='pendente'; p.routeId=null; p.obsRota='';
+        save(); render(); renderFinalizados();
+      }
+    });
+  });
+}
+
+// ---------- MONTAR ROTA TAB ----------
+document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
+  const data = document.getElementById('r-data').value || todayStr();
+  const nome = document.getElementById('r-nome').value.trim();
+  const caminhao = document.getElementById('r-caminhao').value.trim();
+  const motorista = document.getElementById('r-motorista').value.trim();
+  const ajudante = document.getElementById('r-ajudante').value.trim();
+  const mostrarProduto = document.getElementById('r-mostrar-produto').checked;
+  if(!nome){ alert('Dê um nome para a rota.'); return; }
+  const rota = {id:uid(), data, nome, caminhao, motorista, ajudante, mostrarProduto};
+  state.rotas.push(rota);
+  document.getElementById('r-nome').value=''; document.getElementById('r-caminhao').value='';
+  document.getElementById('r-motorista').value=''; document.getElementById('r-ajudante').value='';
+  document.getElementById('r-mostrar-produto').checked = true;
+  save();
+  renderMontar(rota.id);
+});
+
+document.getElementById('select-rota-editar').addEventListener('change', e=>renderMontar(e.target.value));
+document.getElementById('filtro-rede-montar').addEventListener('change', ()=>renderMontar(document.getElementById('select-rota-editar').value));
+
+document.getElementById('chk-mostrar-produto').addEventListener('change', (e)=>{
+  const activeId = document.getElementById('select-rota-editar').value;
+  const rota = state.rotas.find(r=>r.id===activeId);
+  if(rota){ rota.mostrarProduto = e.target.checked; save(); }
+});
+
+function renderMontar(selectId){
+  const sel = document.getElementById('select-rota-editar');
+  const rotasDoDia = state.rotas;
+  sel.innerHTML = rotasDoDia.map(r=>`<option value="${r.id}">${fmtDate(r.data)} — ${esc(r.nome)}</option>`).join('');
+  if(rotasDoDia.length===0){
+    document.getElementById('rota-editar-vazia').style.display='block';
+    document.getElementById('rota-editar-conteudo').style.display='none';
+    return;
+  }
+  document.getElementById('rota-editar-vazia').style.display='none';
+  document.getElementById('rota-editar-conteudo').style.display='block';
+  const activeId = selectId && rotasDoDia.find(r=>r.id===selectId) ? selectId : rotasDoDia[rotasDoDia.length-1].id;
+  sel.value = activeId;
+  const activeRota = rotasDoDia.find(r=>r.id===activeId);
+  document.getElementById('chk-mostrar-produto').checked = activeRota ? activeRota.mostrarProduto !== false : true;
+
+  const filtroRede = document.getElementById('filtro-rede-montar').value;
+
+  const pendentes = state.pedidos.filter(p=> p.status==='pendente' && (!filtroRede || p.rede===filtroRede));
+  const naRota = state.pedidos.filter(p=>p.routeId===activeId);
+
+  document.getElementById('lista-pendentes').innerHTML = pendentes.length ? pendentes.map(p=>`
+    <div class="checkrow">
+      <input type="checkbox" data-add="${p.id}">
+      <label>
+        <span class="titulo">${esc(p.rede)} - ${esc(p.loja)}</span>
+        <span class="produto-sub">${esc(p.produto)} · ${fmtDate(p.data)}</span>
+      </label>
+    </div>
+  `).join('') : `<div class="empty">Sem pedidos pendentes com esse filtro.</div>`;
+
+  document.getElementById('lista-na-rota').innerHTML = naRota.length ? naRota.map(p=>`
+    <div class="checkrow">
+      <label>
+        <span class="titulo">${esc(p.rede)} - ${esc(p.loja)}</span>
+        <span class="produto-sub">${esc(p.produto)}</span>
+      </label>
+      <input type="text" class="obs-input" data-obs="${p.id}" placeholder="Observação (ex: só à tarde)" value="${esc(p.obsRota||'')}">
+      <button class="btn sm ghost" data-remove="${p.id}">Tirar</button>
+    </div>
+  `).join('') : `<div class="empty">Nenhum pedido adicionado ainda.</div>`;
+
+  document.querySelectorAll('[data-add]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const p = state.pedidos.find(x=>x.id===cb.dataset.add);
+      if(p){ p.status='roteirizado'; p.routeId=activeId; save(); renderMontar(activeId); renderPedidosTable(); renderStats(); }
+    });
+  });
+  document.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = state.pedidos.find(x=>x.id===btn.dataset.remove);
+      if(p){ p.status='pendente'; p.routeId=null; p.obsRota=''; save(); renderMontar(activeId); renderPedidosTable(); renderStats(); }
+    });
+  });
+  document.querySelectorAll('[data-obs]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const p = state.pedidos.find(x=>x.id===inp.dataset.obs);
+      if(p){ p.obsRota = inp.value.trim(); save(); }
+    });
+  });
+}
+
+// ---------- ROTEIRO DO DIA TAB ----------
+document.getElementById('rt-data').addEventListener('change', renderRoteiro);
+document.getElementById('btn-print').addEventListener('click', ()=>window.print());
+
+function buildRouteText(r){
+  let txt = `🚚 *${r.nome}*\n`;
+  txt += `📅 Data: ${fmtDate(r.data)}\n`;
+  if(r.motorista) txt += `👤 Motorista: ${r.motorista}\n`;
+  if(r.ajudante) txt += `🧑‍🤝‍🧑 Ajudante: ${r.ajudante}\n`;
+  if(r.caminhao) txt += `🚛 Placa/Caminhão: ${r.caminhao}\n`;
+  txt += `\n`;
+  const stops = state.pedidos.filter(p=>p.routeId===r.id);
+  if(stops.length===0){
+    txt += `(nenhuma loja nesta rota ainda)\n`;
+  } else {
+    stops.forEach(s=>{
+      let linha = `📍 ${s.loja}`;
+      if(r.mostrarProduto !== false) linha += ` — ${s.produto}`;
+      if(s.obsRota) linha += `\n   ⚠️ ${s.obsRota}`;
+      txt += linha + '\n';
+    });
+  }
+  return txt;
+}
+
+document.getElementById('btn-copiar').addEventListener('click', ()=>{
+  const data = document.getElementById('rt-data').value;
+  const rotas = state.rotas.filter(r=>r.data===data);
+  if(rotas.length===0){ alert('Nenhuma rota criada para essa data.'); return; }
+  let txt = `ROTEIRO ${fmtDate(data)}\n\n`;
+  rotas.forEach(r=>{ txt += buildRouteText(r) + '\n'; });
+  navigator.clipboard.writeText(txt).then(()=>alert('Roteiro copiado! Pode colar no WhatsApp.'));
+});
+
+function enviarWhatsApp(routeId){
+  const r = state.rotas.find(x=>x.id===routeId);
+  if(!r) return;
+  const texto = buildRouteText(r);
+  const url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
+}
+
+function renderRoteiro(){
+  const data = document.getElementById('rt-data').value || todayStr();
+  const rotas = state.rotas.filter(r=>r.data===data);
+  const container = document.getElementById('roteiro-container');
+
+  if(rotas.length===0){
+    container.innerHTML = `<div class="card"><div class="empty"><b>Nenhuma rota criada para essa data</b>Vá em "Montar rota" para criar a rota do dia.</div></div>`;
+    return;
+  }
+
+  container.innerHTML = rotas.map(r=>{
+    const mostrarProduto = r.mostrarProduto !== false;
+    const stops = state.pedidos.filter(p=>p.routeId===r.id);
+    const colCount = 3 + (mostrarProduto?1:0) + 1;
+    const rows = stops.length ? stops.map(s=>`
+      <tr>
+        <td>${esc(s.loja)}</td>
+        ${mostrarProduto ? `<td><span class="tag-produto">${esc(s.produto)}</span></td>` : ''}
+        <td class="obs-cell">${esc(s.obsRota) || '—'}</td>
+        <td><span class="badge ${s.status}">${s.status}</span></td>
+        <td class="no-print rowactions">
+          ${s.status!=='entregue' ? `<button class="btn sm ghost" data-entregue="${s.id}">Entregue</button>` : ''}
+          <button class="btn sm danger" data-voltou="${s.id}">Voltou</button>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="${colCount}"><div class="empty">Nenhum pedido nesta rota ainda.</div></td></tr>`;
+
+    return `
+      <div class="route-table-wrap" style="margin-bottom:20px;">
+        <table class="route-table">
+          <caption>${fmtDate(r.data)} — ${esc(r.nome)}</caption>
+          <tr class="meta-row"><td colspan="${colCount}">
+            ${r.motorista? '<b>Motorista:</b> '+esc(r.motorista)+' &nbsp;·&nbsp; ':''}
+            ${r.ajudante? '<b>Ajudante:</b> '+esc(r.ajudante)+' &nbsp;·&nbsp; ':''}
+            ${r.caminhao? '<b>Caminhão:</b> '+esc(r.caminhao):''}
+          </td></tr>
+          <tr>
+            <th>Loja</th>
+            ${mostrarProduto ? '<th>Produto</th>' : ''}
+            <th>Observação</th>
+            <th>Status</th>
+            <th class="no-print"></th>
+          </tr>
+          ${rows}
+        </table>
+        <div class="route-actions-bar no-print">
+          <button class="btn whatsapp" data-whatsapp="${r.id}">📲 Enviar Rota via WhatsApp</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-entregue]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = state.pedidos.find(x=>x.id===btn.dataset.entregue);
+      if(p){ p.status='entregue'; save(); renderRoteiro(); renderPedidosTable(); renderStats(); }
+    });
+  });
+  container.querySelectorAll('[data-voltou]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = state.pedidos.find(x=>x.id===btn.dataset.voltou);
+      if(p){
+        p.status='pendente'; p.routeId=null;
+        save(); renderRoteiro(); renderPedidosTable(); renderStats();
+        alert(`${p.loja} — ${p.produto} voltou para os pendentes. Não vai se perder.`);
+      }
+    });
+  });
+  container.querySelectorAll('[data-whatsapp]').forEach(btn=>{
+    btn.addEventListener('click', ()=> enviarWhatsApp(btn.dataset.whatsapp));
+  });
+}
+
+function render(){
+  renderStats();
+  fillDatalists();
+  renderPedidosTable();
+}
+
+load();
+
+// ---------- PWA: ícone, manifest e instalação como app ----------
+const ISIS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#14151b"/>
+  <g>
+    <rect x="72" y="200" width="230" height="130" rx="14" fill="#2f5cff"/>
+    <path d="M302 230h90l60 60v40h-150z" fill="#8b2eff"/>
+    <circle cx="170" cy="350" r="38" fill="#14151b" stroke="#2f5cff" stroke-width="14"/>
+    <circle cx="360" cy="350" r="38" fill="#14151b" stroke="#8b2eff" stroke-width="14"/>
+  </g>
+</svg>`;
+
+function svgToPngDataUrl(svgMarkup, size){
+  return new Promise((resolve, reject)=>{
+    try{
+      const svgBlob = new Blob([svgMarkup], {type:'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = (e)=>{ URL.revokeObjectURL(url); reject(e); };
+      img.src = url;
+    }catch(e){ reject(e); }
+  });
+}
+
+async function setupPWA(){
+  try{
+    const icon192 = await svgToPngDataUrl(ISIS_ICON_SVG, 192);
+    const icon512 = await svgToPngDataUrl(ISIS_ICON_SVG, 512);
+
+    const linkIcon = document.createElement('link');
+    linkIcon.rel = 'icon'; linkIcon.type = 'image/png'; linkIcon.href = icon192;
+    document.head.appendChild(linkIcon);
+
+    const appleIcon = document.createElement('link');
+    appleIcon.rel = 'apple-touch-icon'; appleIcon.href = icon192;
+    document.head.appendChild(appleIcon);
+
+    const manifest = {
+      name: "ISISLog — Sua rota simplificada",
+      short_name: "ISISLog",
+      start_url: ".",
+      scope: "./",
+      display: "standalone",
+      background_color: "#14151b",
+      theme_color: "#14151b",
+      icons: [
+        { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+        { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    const linkManifest = document.createElement('link');
+    linkManifest.rel = 'manifest'; linkManifest.href = manifestUrl;
+    document.head.appendChild(linkManifest);
+  }catch(e){
+    console.warn('Não foi possível gerar o ícone/manifest do PWA:', e);
+  }
+
+  // Service worker é opcional: só ativa se existir um arquivo sw.js publicado
+  // junto no mesmo repositório. Sem ele, o app ainda funciona normalmente,
+  // só que alguns navegadores podem não oferecer o botão de instalar.
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{ /* sw.js não encontrado — segue sem instalar */ });
+  }
+}
+setupPWA();
+</script>
+</body>
+</html>
