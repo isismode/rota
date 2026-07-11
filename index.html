@@ -143,6 +143,7 @@
 
   .route-table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
   .route-header{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fbfbfc; color:var(--ink); padding:12px 16px; border-bottom:2px solid var(--blue); border-radius:10px 10px 0 0;}
+  .route-header .btn-excluir-rota{margin-left:auto;}
   .route-date-input{font-family:var(--sans); font-weight:700; font-size:13.5px; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px 9px; background:#fff;}
   .route-header-name{font-family:var(--sans); font-weight:800; font-size:15px; letter-spacing:.01em;}
   .print-only{display:none;}
@@ -766,6 +767,33 @@ function enviarWhatsApp(routeId){
   window.open(url, '_blank');
 }
 
+function excluirRota(routeId){
+  const r = state.rotas.find(x=>x.id===routeId);
+  if(!r) return;
+  const pedidosDaRota = state.pedidos.filter(p=>p.routeId===routeId);
+
+  const msg = pedidosDaRota.length
+    ? `Esta rota tem ${pedidosDaRota.length} pedido(s). Ao excluir, eles voltam automaticamente para "Pendentes" sem perder nenhuma informação. Confirma excluir a rota "${r.nome}"?`
+    : `Excluir a rota "${r.nome}"? Ela está vazia.`;
+  if(!confirm(msg)) return;
+
+  // devolve para pendente qualquer pedido que ainda pertencia a esta rota
+  pedidosDaRota.forEach(p=>{
+    p.status = 'pendente';
+    p.routeId = null;
+    p.obsRota = '';
+  });
+
+  // remove a rota do sistema (e da planilha, no próximo save)
+  state.rotas = state.rotas.filter(x=>x.id!==routeId);
+
+  save();
+  renderRoteiro();
+  renderPedidosTable();
+  renderStats();
+  renderMontar();
+}
+
 function voltarItem(pedidoId){
   const original = state.pedidos.find(x=>x.id===pedidoId);
   if(!original) return;
@@ -838,6 +866,7 @@ function renderRoteiro(){
           <input type="date" class="route-date-input no-print" data-route-date="${r.id}" value="${r.data}" title="Alterar a data desta rota">
           <span class="route-date-print print-only">${fmtDate(r.data)}</span>
           <span class="route-header-name"> — ${esc(r.nome)}</span>
+          <button class="btn sm danger btn-excluir-rota no-print" data-delete-route="${r.id}" title="Excluir esta rota">🗑️ Excluir rota</button>
         </div>
         <table class="route-table">
           <tr class="meta-row"><td colspan="${colCount}">
@@ -868,13 +897,17 @@ function renderRoteiro(){
       const r = state.rotas.find(x=>x.id===inp.dataset.routeDate);
       if(!r) return;
       r.data = novaData;
-      // atualiza a data de todos os pedidos que pertencem a esta rota de uma vez
+      // migração completa: TODO pedido vinculado a esta rota (routeId===r.id) muda de data junto,
+      // então a rota some do dia antigo e passa a existir só no novo dia escolhido.
       state.pedidos.forEach(p=>{ if(p.routeId===r.id) p.data = novaData; });
       document.getElementById('rt-data').value = novaData;
       save();
       renderRoteiro();
       renderPedidosTable();
     });
+  });
+  container.querySelectorAll('[data-delete-route]').forEach(btn=>{
+    btn.addEventListener('click', ()=> excluirRota(btn.dataset.deleteRoute));
   });
   container.querySelectorAll('[data-portal]').forEach(btn=>{
     btn.addEventListener('click', ()=> window.open(btn.dataset.portal, '_blank'));
