@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ISISLog — Sua rota simplificada</title>
 
-<!-- PWA / instalação como app -->
+<!-- PWA / install as app -->
 <meta name="theme-color" content="#14151b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,7 +39,7 @@
     --mono: 'JetBrains Mono', 'Courier New', monospace;
     --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-    /* Tokens reais da marca ISIS (landing page) — usados na Home em tela cheia */
+    /* Real ISIS brand tokens (landing page) — used in the fullscreen Home */
     --color-bg-dark:#0a0f1d;
     --color-bg-card:rgba(16, 24, 48, 0.45);
     --color-brand-blue:#0052ff;
@@ -94,7 +92,7 @@
   .topbar-slogan{font-family:var(--sans); font-weight:500; font-size:12.5px; color:var(--violet); letter-spacing:.01em;}
   .topbar-status{font-size:11.5px; color:var(--muted); background:#fff; padding:6px 13px; border-radius:20px; border:1px solid var(--line); white-space:nowrap;}
 
-  /* ---------- ÁREA DE TRABALHO (clara, texto preto nítido) ---------- */
+  /* ---------- WORKSPACE (light background, sharp black text) ---------- */
   .main{flex:1; padding:8px 34px 60px; max-width:1180px;}
   h1{font-family:var(--sans); font-size:22px; font-weight:800; margin:0 0 3px; letter-spacing:-.01em; color:var(--ink);}
   .sub{color:var(--muted); font-size:13px; margin-bottom:22px;}
@@ -167,7 +165,7 @@
   .btn-portal{padding:5px 9px; font-size:13px; line-height:1;}
   .route-actions-bar{display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#f7f8fa; border-top:1px solid var(--line);}
 
-  /* ---------- CARDS DE LOJA E BOTÕES GIGANTES (Roteiro do dia) ---------- */
+  /* ---------- STORE CARDS AND GIANT BUTTONS (Daily route) ---------- */
   .route-meta{font-size:12.5px; color:var(--ink); background:#f7f8fa; padding:9px 16px; border-bottom:1px solid var(--line);}
   .route-meta b{color:var(--ink); font-weight:700;}
   .route-lojas{padding:14px 16px; background:#fff;}
@@ -192,7 +190,7 @@
     .loja-acoes{grid-template-columns:1fr;}
   }
 
-  /* ---------- MODAL DEVOLUÇÃO PARCIAL ---------- */
+  /* ---------- PARTIAL RETURN MODAL ---------- */
   .modal-overlay{position:fixed; inset:0; background:rgba(17,19,24,.55); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;}
   .modal-overlay.aberto{display:flex;}
   .modal-box{background:#fff; border-radius:14px; padding:24px; max-width:420px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.28);}
@@ -227,7 +225,7 @@
   body.modo-home .topbar{display:none !important;}
   body.modo-home .main{padding:0 !important; max-width:none !important;}
 
-  /* ---------- Utilitários reais da landing page ISIS (glassmorphism) ---------- */
+  /* ---------- Real ISIS landing page utilities (glassmorphism) ---------- */
   .glass-panel{
     background: rgba(13, 20, 38, 0.6);
     backdrop-filter: blur(12px);
@@ -272,7 +270,7 @@
   }
   .pulse-indicator{ animation: pulseGlow 3s infinite ease-in-out; }
 
-  /* ---------- INÍCIO / DASHBOARD (idêntica à landing page ISIS) ---------- */
+  /* ---------- HOME / DASHBOARD (identical to the ISIS landing page) ---------- */
   #tab-inicio{
     background:var(--color-bg-dark);
     min-height:100vh;
@@ -332,7 +330,7 @@
   .home-stat-card .l{font-size:12px; color:#9aa7bd; text-transform:uppercase; letter-spacing:.05em; margin-top:10px; display:flex; align-items:center; gap:7px;}
 
   @media (max-width:768px){
-    /* ---- Home escura: cards em coluna única, texto proporcional ---- */
+    /* ---- Dark Home: single-column cards, proportional text ---- */
     #tab-inicio{padding:44px 18px;}
     .home-title{font-size:26px;}
     .home-title-sub{font-size:16px;}
@@ -345,7 +343,7 @@
     .home-stat-card{width:100%; padding:22px 20px;}
     .home-stat-card .n{font-size:30px;}
 
-    /* ---- Área operacional clara: sidebar vira barra de navegação no topo ---- */
+    /* ---- Light operational area: sidebar becomes a top nav bar ---- */
     .shell{flex-direction:column;}
     .side{
       width:100%; flex-direction:row; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch;
@@ -363,11 +361,11 @@
     .topbar{padding:16px 16px 14px;}
     .topbar-title{font-size:21px;}
 
-    /* ---- Formulários: campos empilhados em largura total ---- */
+    /* ---- Forms: fields stacked at full width ---- */
     .grid-form{grid-template-columns:1fr;}
     .split{grid-template-columns:1fr;}
 
-    /* ---- Tabelas: rolagem horizontal suave para caber os botões ---- */
+    /* ---- Tables: smooth horizontal scroll so buttons stay reachable ---- */
     .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
     .table-scroll table{min-width:640px;}
   }
@@ -414,7 +412,7 @@
 
     <div id="config-banner"></div>
 
-    <!-- TAB INÍCIO / DASHBOARD (tela cheia, imersiva, sem menu/topo) -->
+    <!-- HOME / DASHBOARD TAB (fullscreen, immersive, no menu/header) -->
     <div id="tab-inicio" class="grid-bg">
       <div class="ambient-glow ambient-glow-1"></div>
       <div class="ambient-glow ambient-glow-2"></div>
@@ -451,7 +449,7 @@
       </div>
     </div>
 
-    <!-- TAB PEDIDOS -->
+    <!-- ORDERS TAB -->
     <div id="tab-pedidos" style="display:none">
       <h1>Pedidos</h1>
       <div class="sub">Todo pedido que chega — de qualquer comprador, de qualquer rede — entra aqui primeiro. Assim que a entrega é confirmada, ele sai daqui e vai para "Finalizados".</div>
@@ -499,7 +497,7 @@
       </div>
     </div>
 
-    <!-- TAB MONTAR ROTA -->
+    <!-- BUILD ROUTE TAB -->
     <div id="tab-montar" style="display:none">
       <h1>Montar rota</h1>
       <div class="sub">Crie a rota do dia, defina caminhão / motorista / ajudante, e escolha quais pedidos pendentes entram nela.</div>
@@ -544,7 +542,7 @@
       </div>
     </div>
 
-    <!-- TAB ROTEIRO DO DIA -->
+    <!-- DAILY ROUTE TAB -->
     <div id="tab-roteiro" style="display:none">
       <h1>Roteiro do dia</h1>
       <div class="sub">A tela final para enviar à logística. Marque "voltou" quando uma entrega não sai — o pedido retorna sozinho para pendentes, sem se perder.</div>
@@ -558,7 +556,7 @@
       <div id="roteiro-container"></div>
     </div>
 
-    <!-- TAB FINALIZADOS -->
+    <!-- COMPLETED TAB -->
     <div id="tab-finalizados" style="display:none">
       <h1>Finalizados</h1>
       <div class="sub">Pedidos já entregues. Saem do painel principal automaticamente para não ocupar espaço, mas ficam guardados aqui caso precise consultar ou reabrir por engano.</div>
@@ -598,7 +596,7 @@
 
 <script>
 /* =======================================================================
-   CONFIGURAÇÃO — URL do Web App do Google Apps Script.
+   CONFIGURATION — URL of the Google Apps Script Web App.
    ======================================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbysZUG9AiIDTMxlFOO2xFZoHd2iiqLuNBHoG_ahQXTwGyhutXGbH3nPZpdSxWEqfkyT/exec";
 /* ======================================================================= */
@@ -626,7 +624,7 @@ function setStatus(text){
   document.getElementById('topbar-status').textContent = text;
 }
 
-// ---------- Carregar e salvar via Google Sheets ----------
+// ---------- Load and save via Google Sheets ----------
 async function load(){
   if(!apiConfigured()){
     showBanner(
@@ -702,7 +700,7 @@ document.getElementById('btn-hero-lancar').addEventListener('click', ()=> switch
 document.getElementById('btn-hero-painel').addEventListener('click', ()=> switchTab('montar'));
 document.getElementById('btn-hero-motorista').addEventListener('click', ()=> switchTab('roteiro'));
 
-// ---------- PEDIDOS TAB ----------
+// ---------- ORDERS TAB ----------
 document.getElementById('f-data').value = todayStr();
 document.getElementById('r-data').value = todayStr();
 document.getElementById('rt-data').value = todayStr();
@@ -849,7 +847,7 @@ function renderPedidosTable(){
   });
 }
 
-// ---------- FINALIZADOS TAB ----------
+// ---------- COMPLETED TAB ----------
 ['filtro-rede-finalizados','filtro-busca-finalizados'].forEach(id=>{
   document.getElementById(id).addEventListener('input', renderFinalizados);
 });
@@ -894,7 +892,7 @@ function renderFinalizados(){
   });
 }
 
-// ---------- MONTAR ROTA TAB ----------
+// ---------- BUILD ROUTE TAB ----------
 document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const data = document.getElementById('r-data').value || todayStr();
   const nome = document.getElementById('r-nome').value.trim();
@@ -983,7 +981,7 @@ function renderMontar(selectId){
   });
 }
 
-// ---------- ROTEIRO DO DIA TAB ----------
+// ---------- DAILY ROUTE TAB ----------
 document.getElementById('rt-data').addEventListener('change', renderRoteiro);
 document.getElementById('btn-print').addEventListener('click', ()=>window.print());
 
@@ -1036,14 +1034,14 @@ function excluirRota(routeId){
     : `Excluir a rota "${r.nome}"? Ela está vazia.`;
   if(!confirm(msg)) return;
 
-  // devolve para pendente qualquer pedido que ainda pertencia a esta rota
+  // return any order that still belonged to this route back to pending
   pedidosDaRota.forEach(p=>{
     p.status = 'pendente';
     p.routeId = null;
     p.obsRota = '';
   });
 
-  // remove a rota do sistema (e da planilha, no próximo save)
+  // remove the route from the system (and the sheet, on the next save)
   state.rotas = state.rotas.filter(x=>x.id!==routeId);
 
   save();
@@ -1092,18 +1090,18 @@ function confirmarDevolucaoParcial(pedidoId, motivo){
   const original = state.pedidos.find(x=>x.id===pedidoId);
   if(!original) return;
 
-  // 1) finaliza os outros produtos da mesma rede+loja dentro desta mesma rota (foram aceitos)
+  // 1) finalize the other products from the same chain+store within this same route (they were accepted)
   state.pedidos.forEach(p=>{
     if(p.id!==original.id && p.routeId===original.routeId && p.rede===original.rede && p.loja===original.loja && p.status!=='entregue'){
       p.status='entregue';
     }
   });
 
-  // 2) o item devolvido fica registrado como "devolvido" (histórico), com o motivo do motorista
+  // 2) the returned item is recorded as "returned" (history), with the driver's reason
   original.status='devolvido';
   if(motivo) original.obsRota = motivo;
 
-  // 3) duplica um novo pedido pendente, só com o produto devolvido, para a triagem de amanhã
+  // 3) duplicate a new pending order, with only the returned product, for tomorrow's triage
   const amanha = new Date();
   amanha.setDate(amanha.getDate()+1);
   const dataAmanha = amanha.toISOString().slice(0,10);
@@ -1157,7 +1155,7 @@ function renderRoteiro(){
     const mostrarProduto = r.mostrarProduto !== false;
     const stops = state.pedidos.filter(p=>p.routeId===r.id);
 
-    // agrupa os pedidos desta rota por loja (rede + loja), para os botões gigantes por loja
+    // group this route's orders by store (chain + store), for the giant per-store buttons
     const grupos = {};
     const ordem = [];
     stops.forEach(s=>{
@@ -1226,8 +1224,8 @@ function renderRoteiro(){
       const r = state.rotas.find(x=>x.id===inp.dataset.routeDate);
       if(!r) return;
       r.data = novaData;
-      // migração completa: TODO pedido vinculado a esta rota (routeId===r.id) muda de data junto,
-      // então a rota some do dia antigo e passa a existir só no novo dia escolhido.
+      // full migration: EVERY order linked to this route (routeId===r.id) changes date together,
+      // so the route disappears from the old day and exists only on the newly chosen day.
       state.pedidos.forEach(p=>{ if(p.routeId===r.id) p.data = novaData; });
       document.getElementById('rt-data').value = novaData;
       save();
@@ -1287,7 +1285,7 @@ function render(){
 
 load();
 
-// ---------- PWA: ícone, manifest e instalação como app ----------
+// ---------- PWA: icon, manifest and install as app ----------
 const ISIS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#14151b"/>
   <g>
@@ -1353,11 +1351,11 @@ async function setupPWA(){
     console.warn('Não foi possível gerar o ícone/manifest do PWA:', e);
   }
 
-  // Service worker é opcional: só ativa se existir um arquivo sw.js publicado
-  // junto no mesmo repositório. Sem ele, o app ainda funciona normalmente,
-  // só que alguns navegadores podem não oferecer o botão de instalar.
+  // Service worker is optional: it only activates if a sw.js file is published
+  // alongside it in the same repository. Without it, the app still works normally,
+  // it's just that some browsers may not offer the install button.
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').catch(()=>{ /* sw.js não encontrado — segue sem instalar */ });
+    navigator.serviceWorker.register('./sw.js').catch(()=>{ /* sw.js not found — continues without install support */ });
   }
 }
 setupPWA();
