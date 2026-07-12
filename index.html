@@ -520,11 +520,8 @@
       </div>
 
       <div class="card">
-        <div class="flexbar">
-          <h2 style="margin:0">Caminhão em planejamento</h2>
-          <select id="select-rota-editar"></select>
-        </div>
-        <div class="hint" style="margin-bottom:10px;">Só mostra rotas de hoje em diante — o planejamento do que já saiu fica registrado em "Histórico".</div>
+        <h2 style="margin:0">🚚 Adicionar Pedidos ao Caminhão</h2>
+        <div class="hint" id="montar-rota-atual" style="margin:6px 0 14px;"></div>
         <div id="rota-editar-vazia" class="empty"><b>Nenhuma rota ainda</b>Crie uma rota acima para começar a adicionar pedidos a ela.</div>
         <div id="rota-editar-conteudo" style="display:none">
           <div class="flexbar">
@@ -974,6 +971,8 @@ function renderHistorico(){
 }
 
 // ---------- BUILD ROUTE TAB ----------
+let activeRouteId = null;
+
 document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const data = document.getElementById('r-data').value || todayStr();
   const nome = document.getElementById('r-nome').value.trim();
@@ -984,42 +983,44 @@ document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   if(!nome){ alert('Dê um nome para a rota.'); return; }
   const rota = {id:uid(), data, nome, caminhao, motorista, ajudante, mostrarProduto, dataSaida:data};
   state.rotas.push(rota);
+  activeRouteId = rota.id;
   document.getElementById('r-nome').value=''; document.getElementById('r-caminhao').value='';
   document.getElementById('r-motorista').value=''; document.getElementById('r-ajudante').value='';
   document.getElementById('r-mostrar-produto').checked = true;
   save();
-  renderMontar(rota.id);
+  renderMontar();
 });
 
-document.getElementById('select-rota-editar').addEventListener('change', e=>renderMontar(e.target.value));
-document.getElementById('filtro-rede-montar').addEventListener('change', ()=>renderMontar(document.getElementById('select-rota-editar').value));
+document.getElementById('filtro-rede-montar').addEventListener('change', renderMontar);
 
 document.getElementById('chk-mostrar-produto').addEventListener('change', (e)=>{
-  const activeId = document.getElementById('select-rota-editar').value;
-  const rota = state.rotas.find(r=>r.id===activeId);
+  const rota = state.rotas.find(r=>r.id===activeRouteId);
   if(rota){ rota.mostrarProduto = e.target.checked; save(); }
 });
 
-function renderMontar(selectId){
-  const sel = document.getElementById('select-rota-editar');
-  const rotasDoDia = state.rotas.filter(r => r.data >= todayStr()).sort((a,b)=> a.data.localeCompare(b.data));
-  sel.innerHTML = rotasDoDia.map(r=>`<option value="${r.id}">${fmtDate(r.data)} — ${esc(r.nome)}</option>`).join('');
-  if(rotasDoDia.length===0){
+function renderMontar(){
+  // if no active truck yet (or it no longer exists), default to the most recently created one
+  if(!activeRouteId || !state.rotas.find(r=>r.id===activeRouteId)){
+    const candidatos = state.rotas.filter(r => r.data >= todayStr());
+    activeRouteId = candidatos.length ? candidatos[candidatos.length-1].id : null;
+  }
+  const activeRota = state.rotas.find(r=>r.id===activeRouteId);
+
+  if(!activeRota){
     document.getElementById('rota-editar-vazia').style.display='block';
     document.getElementById('rota-editar-conteudo').style.display='none';
+    document.getElementById('montar-rota-atual').textContent = '';
     return;
   }
   document.getElementById('rota-editar-vazia').style.display='none';
   document.getElementById('rota-editar-conteudo').style.display='block';
-  const activeId = selectId && rotasDoDia.find(r=>r.id===selectId) ? selectId : rotasDoDia[rotasDoDia.length-1].id;
-  sel.value = activeId;
-  const activeRota = rotasDoDia.find(r=>r.id===activeId);
-  document.getElementById('chk-mostrar-produto').checked = activeRota ? activeRota.mostrarProduto !== false : true;
+  document.getElementById('montar-rota-atual').textContent = `Adicionando pedidos para: ${fmtDate(activeRota.data)} — ${activeRota.nome}${activeRota.caminhao ? ' · '+activeRota.caminhao : ''}`;
+  document.getElementById('chk-mostrar-produto').checked = activeRota.mostrarProduto !== false;
 
   const filtroRede = document.getElementById('filtro-rede-montar').value;
 
   const pendentes = state.pedidos.filter(p=> p.status==='pendente' && (!filtroRede || p.rede===filtroRede));
-  const naRota = state.pedidos.filter(p=>p.routeId===activeId);
+  const naRota = state.pedidos.filter(p=>p.routeId===activeRouteId);
 
   document.getElementById('lista-pendentes').innerHTML = pendentes.length ? pendentes.map(p=>`
     <div class="checkrow">
@@ -1046,7 +1047,7 @@ function renderMontar(selectId){
     cb.addEventListener('change', ()=>{
       const p = state.pedidos.find(x=>x.id===cb.dataset.add);
       if(p && activeRota){
-        p.status='roteirizado'; p.routeId=activeId;
+        p.status='roteirizado'; p.routeId=activeRouteId;
         state.historico.push({
           id: uid(),
           pedidoId: p.id,
@@ -1061,7 +1062,7 @@ function renderMontar(selectId){
           produto: p.produto,
           status: 'saiu'
         });
-        save(); renderMontar(activeId); renderPedidosTable(); renderStats();
+        save(); renderMontar(); renderPedidosTable(); renderStats();
       }
     });
   });
@@ -1069,10 +1070,10 @@ function renderMontar(selectId){
     btn.addEventListener('click', ()=>{
       const p = state.pedidos.find(x=>x.id===btn.dataset.remove);
       if(p){
-        // corrigindo o planejamento antes da saída de verdade: some com o registro de histórico criado por engano
+        // correcting the plan before the real dispatch: remove the historico record created by mistake
         state.historico = state.historico.filter(h => !(h.pedidoId===p.id && h.rotaId===p.routeId && h.status==='saiu'));
         p.status='pendente'; p.routeId=null; p.obsRota='';
-        save(); renderMontar(activeId); renderPedidosTable(); renderStats();
+        save(); renderMontar(); renderPedidosTable(); renderStats();
       }
     });
   });
