@@ -186,7 +186,7 @@
   .btn-gigante-vermelho:hover{background:#b1544a;}
   .btn-gigante-laranja{background:#d99a45;}
   .btn-gigante-laranja:hover{background:#c1863a;}
-  @media (max-width:640px){
+  @media (max-width:768px){
     .loja-acoes{grid-template-columns:1fr;}
   }
 
@@ -329,12 +329,45 @@
   .home-stat-card .n.accent-red{color:#f87171;}
   .home-stat-card .l{font-size:12px; color:#9aa7bd; text-transform:uppercase; letter-spacing:.05em; margin-top:10px; display:flex; align-items:center; gap:7px;}
 
-  @media (max-width:640px){
-    #tab-inicio{padding:56px 18px;}
-    .home-title{font-size:30px;}
-    .home-title-sub{font-size:18px;}
-    .home-userbar{flex-direction:column; gap:4px;}
+  @media (max-width:768px){
+    /* ---- Home escura: cards em coluna única, texto proporcional ---- */
+    #tab-inicio{padding:44px 18px;}
+    .home-title{font-size:26px;}
+    .home-title-sub{font-size:16px;}
+    .home-desc{font-size:14px; padding:0 6px;}
+    .home-userbar{flex-direction:column; gap:4px; text-align:center; padding:12px 18px;}
     .home-userbar .sep{display:none;}
+    .home-modules{grid-template-columns:1fr; gap:14px; margin-bottom:36px;}
+    .home-module-card{width:100%; padding:24px 20px;}
+    .home-stats{grid-template-columns:1fr; gap:14px;}
+    .home-stat-card{width:100%; padding:22px 20px;}
+    .home-stat-card .n{font-size:30px;}
+
+    /* ---- Área operacional clara: sidebar vira barra de navegação no topo ---- */
+    .shell{flex-direction:column;}
+    .side{
+      width:100%; flex-direction:row; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      padding:8px 10px; gap:2px; border-right:none; border-bottom:1px solid var(--line);
+      flex-shrink:0;
+    }
+    .side-logo{display:none;}
+    .navbtn{
+      flex-direction:row; white-space:nowrap; padding:10px 14px; border-left:none;
+      border-bottom:3px solid transparent; width:auto; flex-shrink:0;
+    }
+    .navbtn.active{border-left:none; border-bottom-color:var(--blue);}
+    .content-col{width:100%;}
+    .main{padding:16px 16px 44px;}
+    .topbar{padding:16px 16px 14px;}
+    .topbar-title{font-size:21px;}
+
+    /* ---- Formulários: campos empilhados em largura total ---- */
+    .grid-form{grid-template-columns:1fr;}
+    .split{grid-template-columns:1fr;}
+
+    /* ---- Tabelas: rolagem horizontal suave para caber os botões ---- */
+    .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+    .table-scroll table{min-width:640px;}
   }
 
   ::-webkit-scrollbar{height:8px; width:8px;}
@@ -390,7 +423,7 @@
           <span class="sep">|</span>
           <span>Blue Bay Salvador</span>
           <span class="sep">|</span>
-          <span>Monitoramento Ativo</span>
+          <span>Operação de Entrega</span>
         </div>
         <span class="home-eyebrow"><span class="dot pulse-indicator"></span>PLATAFORMA DE OPERAÇÕES LOGÍSTICAS</span>
         <h1 class="home-title"><span class="home-title-main">ISISLog</span><span class="home-title-sub">Inteligência de Supervisão e Rotas</span></h1>
@@ -456,9 +489,11 @@
             <input type="text" id="filtro-busca" placeholder="Buscar loja ou produto...">
           </div>
         </div>
+        <div class="table-scroll">
         <table id="tabela-pedidos"><thead><tr>
           <th>Data</th><th>Rede</th><th>Loja</th><th>Produto</th><th>Status</th><th></th>
         </tr></thead><tbody></tbody></table>
+        </div>
       </div>
     </div>
 
@@ -534,9 +569,11 @@
             <input type="text" id="filtro-busca-finalizados" placeholder="Buscar loja ou produto...">
           </div>
         </div>
+        <div class="table-scroll">
         <table id="tabela-finalizados"><thead><tr>
           <th>Data</th><th>Rede</th><th>Loja</th><th>Produto</th><th>Rota</th><th></th>
         </tr></thead><tbody></tbody></table>
+        </div>
       </div>
     </div>
 
