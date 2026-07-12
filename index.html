@@ -96,6 +96,7 @@
   .main{flex:1; padding:8px 34px 60px; max-width:1180px;}
   h1{font-family:var(--sans); font-size:22px; font-weight:800; margin:0 0 3px; letter-spacing:-.01em; color:var(--ink);}
   .sub{color:var(--muted); font-size:13px; margin-bottom:22px;}
+  .hint{color:var(--muted); font-size:12px; line-height:1.5;}
 
   .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px;}
   input,select,textarea{
@@ -397,6 +398,7 @@
     <button class="navbtn" data-tab="montar"><span class="dot"></span>Montar rota</button>
     <button class="navbtn" data-tab="roteiro"><span class="dot"></span>Roteiro do dia</button>
     <button class="navbtn" data-tab="finalizados"><span class="dot"></span>Finalizados</button>
+    <button class="navbtn" data-tab="historico"><span class="dot"></span>Histórico</button>
   </div>
 
   <div class="content-col">
@@ -519,9 +521,10 @@
 
       <div class="card">
         <div class="flexbar">
-          <h2 style="margin:0">Rota selecionada</h2>
+          <h2 style="margin:0">Caminhão em planejamento</h2>
           <select id="select-rota-editar"></select>
         </div>
+        <div class="hint" style="margin-bottom:10px;">Só mostra rotas de hoje em diante — o planejamento do que já saiu fica registrado em "Histórico".</div>
         <div id="rota-editar-vazia" class="empty"><b>Nenhuma rota ainda</b>Crie uma rota acima para começar a adicionar pedidos a ela.</div>
         <div id="rota-editar-conteudo" style="display:none">
           <div class="flexbar">
@@ -577,6 +580,29 @@
       </div>
     </div>
 
+    <!-- HISTORY TAB -->
+    <div id="tab-historico" style="display:none">
+      <h1>Histórico de Cargas</h1>
+      <div class="sub">Espelho fixo de como cada carga saiu do galpão. Mesmo que um item volte depois, o registro aqui não desaparece — só ganha uma bolinha de status para auditoria: 🟢 entregue, 🔴 devolvido, ⚪ ainda em rota.</div>
+
+      <div class="card">
+        <div class="flexbar">
+          <h2 style="margin:0">Consulta de saídas</h2>
+          <div class="toolbar" style="margin:0">
+            <input type="date" id="filtro-data-saida" title="Data de saída do caminhão">
+            <input type="text" id="filtro-placa-historico" placeholder="Placa / veículo...">
+            <input type="text" id="filtro-busca-historico" placeholder="Buscar rede ou loja...">
+            <button class="btn ghost" id="btn-limpar-filtros-historico">Limpar filtros</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table id="tabela-historico"><thead><tr>
+          <th>Data de saída</th><th>Rota / Placa</th><th>Motorista</th><th>Rede + Loja</th><th>Produto</th><th>Status</th>
+        </tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
   </div>
   </div>
 </div>
@@ -601,7 +627,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbysZUG9AiIDTMxlFOO2xFZoHd2iiqLuNBHoG_ahQXTwGyhutXGbH3nPZpdSxWEqfkyT/exec";
 /* ======================================================================= */
 
-let state = { pedidos: [], rotas: [] };
+let state = { pedidos: [], rotas: [], historico: [] };
 let saving = false;
 let editingId = null;
 
@@ -642,15 +668,19 @@ async function load(){
     const data = await res.json();
     state = {
       pedidos: Array.isArray(data.pedidos) ? data.pedidos : [],
-      rotas: Array.isArray(data.rotas) ? data.rotas : []
+      rotas: Array.isArray(data.rotas) ? data.rotas : [],
+      historico: Array.isArray(data.historico) ? data.historico : []
     };
     state.pedidos.forEach(p=>{
       if(p.obsRota===undefined) p.obsRota='';
       if(p.dataAgendamento===undefined) p.dataAgendamento='';
       if(p.linkPortal===undefined) p.linkPortal='';
     });
-    state.rotas.forEach(r=>{ if(r.mostrarProduto===undefined) r.mostrarProduto=true; });
-    console.log('[ISISLog] Dados carregados da planilha:', state.pedidos.length, 'pedidos,', state.rotas.length, 'rotas.');
+    state.rotas.forEach(r=>{
+      if(r.mostrarProduto===undefined) r.mostrarProduto=true;
+      if(r.dataSaida===undefined) r.dataSaida=r.data;
+    });
+    console.log('[ISISLog] Dados carregados da planilha:', state.pedidos.length, 'pedidos,', state.rotas.length, 'rotas,', state.historico.length, 'registros de histórico.');
     showBanner('', '');
     setStatus('conectado à planilha');
   }catch(e){
@@ -684,13 +714,14 @@ async function save(){
 // ---------- Navigation ----------
 function switchTab(tabName){
   document.querySelectorAll('.navbtn').forEach(x=>x.classList.toggle('active', x.dataset.tab===tabName));
-  ['inicio','pedidos','montar','roteiro','finalizados'].forEach(t=>{
+  ['inicio','pedidos','montar','roteiro','finalizados','historico'].forEach(t=>{
     document.getElementById('tab-'+t).style.display = (t===tabName) ? (t==='inicio' ? 'flex' : 'block') : 'none';
   });
   document.body.classList.toggle('modo-home', tabName==='inicio');
   if(tabName==='montar') renderMontar();
   if(tabName==='roteiro') renderRoteiro();
   if(tabName==='finalizados') renderFinalizados();
+  if(tabName==='historico') renderHistorico();
   if(tabName==='inicio') renderDashboard();
 }
 document.querySelectorAll('.navbtn').forEach(b=>{
@@ -892,6 +923,56 @@ function renderFinalizados(){
   });
 }
 
+// ---------- HISTORY TAB ----------
+['filtro-data-saida','filtro-placa-historico','filtro-busca-historico'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderHistorico);
+});
+document.getElementById('btn-limpar-filtros-historico').addEventListener('click', ()=>{
+  document.getElementById('filtro-data-saida').value = '';
+  document.getElementById('filtro-placa-historico').value = '';
+  document.getElementById('filtro-busca-historico').value = '';
+  renderHistorico();
+});
+
+function statusHistoricoIcone(status){
+  if(status==='entregue') return '🟢 Entregue';
+  if(status==='devolvido') return '🔴 Devolvido';
+  return '⚪ Em rota';
+}
+
+function renderHistorico(){
+  const tbody = document.querySelector('#tabela-historico tbody');
+  if(!tbody) return;
+
+  const dataSaida = document.getElementById('filtro-data-saida').value;
+  const placa = document.getElementById('filtro-placa-historico').value.trim().toLowerCase();
+  const busca = document.getElementById('filtro-busca-historico').value.trim().toLowerCase();
+
+  let list = state.historico.filter(h=>{
+    if(dataSaida && h.dataSaida!==dataSaida) return false;
+    if(placa && !(h.caminhao||'').toLowerCase().includes(placa)) return false;
+    if(busca && !((h.rede||'').toLowerCase().includes(busca) || (h.loja||'').toLowerCase().includes(busca))) return false;
+    return true;
+  });
+  list.sort((a,b)=> (b.dataSaida||'').localeCompare(a.dataSaida||''));
+
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><b>Nenhuma carga encontrada</b>Ajuste os filtros ou aguarde a próxima rota sair do galpão.</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(h=>`
+    <tr>
+      <td>${fmtDate(h.dataSaida)}</td>
+      <td>${esc(h.rotaNome)}${h.caminhao ? ' · '+esc(h.caminhao) : ''}</td>
+      <td>${esc(h.motorista) || '-'}</td>
+      <td>${esc(h.rede)} ${esc(h.loja)}</td>
+      <td>${esc(h.produto)}</td>
+      <td>${statusHistoricoIcone(h.status)}</td>
+    </tr>
+  `).join('');
+}
+
 // ---------- BUILD ROUTE TAB ----------
 document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const data = document.getElementById('r-data').value || todayStr();
@@ -901,7 +982,7 @@ document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const ajudante = document.getElementById('r-ajudante').value.trim();
   const mostrarProduto = document.getElementById('r-mostrar-produto').checked;
   if(!nome){ alert('Dê um nome para a rota.'); return; }
-  const rota = {id:uid(), data, nome, caminhao, motorista, ajudante, mostrarProduto};
+  const rota = {id:uid(), data, nome, caminhao, motorista, ajudante, mostrarProduto, dataSaida:data};
   state.rotas.push(rota);
   document.getElementById('r-nome').value=''; document.getElementById('r-caminhao').value='';
   document.getElementById('r-motorista').value=''; document.getElementById('r-ajudante').value='';
@@ -921,7 +1002,7 @@ document.getElementById('chk-mostrar-produto').addEventListener('change', (e)=>{
 
 function renderMontar(selectId){
   const sel = document.getElementById('select-rota-editar');
-  const rotasDoDia = state.rotas;
+  const rotasDoDia = state.rotas.filter(r => r.data >= todayStr()).sort((a,b)=> a.data.localeCompare(b.data));
   sel.innerHTML = rotasDoDia.map(r=>`<option value="${r.id}">${fmtDate(r.data)} — ${esc(r.nome)}</option>`).join('');
   if(rotasDoDia.length===0){
     document.getElementById('rota-editar-vazia').style.display='block';
@@ -964,13 +1045,35 @@ function renderMontar(selectId){
   document.querySelectorAll('[data-add]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const p = state.pedidos.find(x=>x.id===cb.dataset.add);
-      if(p){ p.status='roteirizado'; p.routeId=activeId; save(); renderMontar(activeId); renderPedidosTable(); renderStats(); }
+      if(p && activeRota){
+        p.status='roteirizado'; p.routeId=activeId;
+        state.historico.push({
+          id: uid(),
+          pedidoId: p.id,
+          rotaId: activeRota.id,
+          rotaNome: activeRota.nome,
+          caminhao: activeRota.caminhao,
+          motorista: activeRota.motorista,
+          ajudante: activeRota.ajudante,
+          dataSaida: activeRota.dataSaida || activeRota.data,
+          rede: p.rede,
+          loja: p.loja,
+          produto: p.produto,
+          status: 'saiu'
+        });
+        save(); renderMontar(activeId); renderPedidosTable(); renderStats();
+      }
     });
   });
   document.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const p = state.pedidos.find(x=>x.id===btn.dataset.remove);
-      if(p){ p.status='pendente'; p.routeId=null; p.obsRota=''; save(); renderMontar(activeId); renderPedidosTable(); renderStats(); }
+      if(p){
+        // corrigindo o planejamento antes da saída de verdade: some com o registro de histórico criado por engano
+        state.historico = state.historico.filter(h => !(h.pedidoId===p.id && h.rotaId===p.routeId && h.status==='saiu'));
+        p.status='pendente'; p.routeId=null; p.obsRota='';
+        save(); renderMontar(activeId); renderPedidosTable(); renderStats();
+      }
     });
   });
   document.querySelectorAll('[data-obs]').forEach(inp=>{
@@ -1044,11 +1147,15 @@ function excluirRota(routeId){
   // remove the route from the system (and the sheet, on the next save)
   state.rotas = state.rotas.filter(x=>x.id!==routeId);
 
+  // the route is being undone entirely, so its history snapshot no longer reflects a real dispatch
+  state.historico = state.historico.filter(h => h.rotaId!==routeId);
+
   save();
   renderRoteiro();
   renderPedidosTable();
   renderStats();
   renderMontar();
+  renderHistorico();
 }
 
 let modalContext = null;
@@ -1091,15 +1198,23 @@ function confirmarDevolucaoParcial(pedidoId, motivo){
   if(!original) return;
 
   // 1) finalize the other products from the same chain+store within this same route (they were accepted)
+  const aceitosIds = [];
   state.pedidos.forEach(p=>{
     if(p.id!==original.id && p.routeId===original.routeId && p.rede===original.rede && p.loja===original.loja && p.status!=='entregue'){
       p.status='entregue';
+      aceitosIds.push(p.id);
     }
   });
 
   // 2) the returned item is recorded as "returned" (history), with the driver's reason
   original.status='devolvido';
   if(motivo) original.obsRota = motivo;
+
+  // mark the fixed historico snapshots: accepted items turn green, the returned one turns red
+  state.historico.forEach(h=>{
+    if(h.pedidoId===original.id && h.rotaId===original.routeId) h.status='devolvido';
+    if(aceitosIds.includes(h.pedidoId) && h.rotaId===original.routeId) h.status='entregue';
+  });
 
   // 3) duplicate a new pending order, with only the returned product, for tomorrow's triage
   const amanha = new Date();
@@ -1120,25 +1235,29 @@ function confirmarDevolucaoParcial(pedidoId, motivo){
   });
 
   save();
-  renderRoteiro(); renderPedidosTable(); renderStats(); renderFinalizados(); renderDashboard();
+  renderRoteiro(); renderPedidosTable(); renderStats(); renderFinalizados(); renderDashboard(); renderHistorico();
 }
 
 function entregueTotal(rede, loja, routeId){
   const itens = state.pedidos.filter(p=>p.routeId===routeId && p.rede===rede && p.loja===loja && p.status!=='entregue');
   if(itens.length===0) return;
   if(!confirm(`Confirmar ENTREGA TOTAL de ${rede} ${loja} (${itens.length} produto(s))?`)) return;
+  const ids = itens.map(p=>p.id);
   itens.forEach(p=>{ p.status='entregue'; });
+  state.historico.forEach(h=>{ if(ids.includes(h.pedidoId) && h.rotaId===routeId) h.status='entregue'; });
   save();
-  renderRoteiro(); renderPedidosTable(); renderStats(); renderFinalizados(); renderDashboard();
+  renderRoteiro(); renderPedidosTable(); renderStats(); renderFinalizados(); renderDashboard(); renderHistorico();
 }
 
 function voltouTudo(rede, loja, routeId){
   const itens = state.pedidos.filter(p=>p.routeId===routeId && p.rede===rede && p.loja===loja);
   if(itens.length===0) return;
   if(!confirm(`Confirmar que TODA a entrega de ${rede} ${loja} voltou? Os ${itens.length} produto(s) retornam para pendentes.`)) return;
+  const ids = itens.map(p=>p.id);
   itens.forEach(p=>{ p.status='pendente'; p.routeId=null; p.obsRota=''; });
+  state.historico.forEach(h=>{ if(ids.includes(h.pedidoId) && h.rotaId===routeId) h.status='devolvido'; });
   save();
-  renderRoteiro(); renderPedidosTable(); renderStats(); renderDashboard();
+  renderRoteiro(); renderPedidosTable(); renderStats(); renderDashboard(); renderHistorico();
 }
 
 function renderRoteiro(){
