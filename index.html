@@ -364,7 +364,14 @@
 
     /* ---- Forms: fields stacked at full width ---- */
     .grid-form{grid-template-columns:1fr;}
-    .split{grid-template-columns:1fr;}
+    .split{grid-template-columns:1fr; gap:20px;}
+
+    /* ---- Order checklists (Montar Rota): stack cleanly, no overlap ---- */
+    .checklist{max-height:none;}
+    .checkrow{flex-wrap:wrap; align-items:stretch; row-gap:8px;}
+    .checkrow label{flex:1 1 100%; min-width:100%;}
+    .checkrow .obs-input{flex:1 1 100%; width:100%;}
+    .checkrow button.btn{width:100%;}
 
     /* ---- Tables: smooth horizontal scroll so buttons stay reachable ---- */
     .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
@@ -502,17 +509,16 @@
     <!-- BUILD ROUTE TAB -->
     <div id="tab-montar" style="display:none">
       <h1>Montar rota</h1>
-      <div class="sub">Crie a rota do dia, defina caminhão / motorista / ajudante, e escolha quais pedidos pendentes entram nela.</div>
+      <div class="sub">Preencha os dados do caminhão, marque os pedidos que vão nele e só salve no final — a rota só é criada quando você clicar em "Salvar e Despachar Caminhão".</div>
 
       <div class="card">
-        <h2>Nova rota</h2>
+        <h2>Dados do caminhão</h2>
         <div class="grid-form">
           <div class="field"><label>Data da rota</label><input type="date" id="r-data"></div>
           <div class="field"><label>Nome da rota</label><input type="text" id="r-nome" placeholder="Ex: TGZ Adriel e Robenilson"></div>
           <div class="field"><label>Caminhão</label><input type="text" id="r-caminhao" placeholder="placa / apelido"></div>
           <div class="field"><label>Motorista</label><input type="text" id="r-motorista"></div>
           <div class="field"><label>Ajudante</label><input type="text" id="r-ajudante"></div>
-          <div><button class="btn amber" id="btn-criar-rota">Criar rota</button></div>
         </div>
         <div style="margin-top:12px;">
           <label class="checkbox-line"><input type="checkbox" id="r-mostrar-produto" checked> Mostrar produto no espelho impresso desta rota</label>
@@ -521,23 +527,22 @@
 
       <div class="card">
         <h2 style="margin:0">🚚 Adicionar Pedidos ao Caminhão</h2>
-        <div class="hint" id="montar-rota-atual" style="margin:6px 0 14px;"></div>
-        <div id="rota-editar-vazia" class="empty"><b>Nenhuma rota ainda</b>Crie uma rota acima para começar a adicionar pedidos a ela.</div>
-        <div id="rota-editar-conteudo" style="display:none">
-          <div class="flexbar">
-            <label class="checkbox-line"><input type="checkbox" id="chk-mostrar-produto"> Mostrar produto no espelho impresso desta rota</label>
-            <select id="filtro-rede-montar"><option value="">Rede: todas</option></select>
+        <div class="hint" style="margin:6px 0 14px;">Marque abaixo os pedidos que vão neste caminhão. Nada é salvo na planilha até você clicar no botão no final desta tela.</div>
+        <div class="toolbar" style="margin-bottom:10px;">
+          <select id="filtro-rede-montar"><option value="">Rede: todas</option></select>
+        </div>
+        <div class="split">
+          <div>
+            <label>Pedidos pendentes disponíveis</label>
+            <div class="checklist" id="lista-pendentes"></div>
           </div>
-          <div class="split">
-            <div>
-              <label>Pedidos pendentes disponíveis</label>
-              <div class="checklist" id="lista-pendentes"></div>
-            </div>
-            <div>
-              <label>Pedidos nesta rota (com observação)</label>
-              <div class="checklist" id="lista-na-rota"></div>
-            </div>
+          <div>
+            <label>Pedidos nesta rota (com observação)</label>
+            <div class="checklist" id="lista-na-rota"></div>
           </div>
+        </div>
+        <div style="margin-top:18px; text-align:right;">
+          <button class="btn amber" id="btn-criar-rota">🚚 Salvar e Despachar Caminhão</button>
         </div>
       </div>
     </div>
@@ -971,7 +976,10 @@ function renderHistorico(){
 }
 
 // ---------- BUILD ROUTE TAB ----------
-let activeRouteId = null;
+let stagedPedidoIds = [];
+let stagedObs = {};
+
+document.getElementById('filtro-rede-montar').addEventListener('change', renderMontar);
 
 document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const data = document.getElementById('r-data').value || todayStr();
@@ -981,46 +989,50 @@ document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const ajudante = document.getElementById('r-ajudante').value.trim();
   const mostrarProduto = document.getElementById('r-mostrar-produto').checked;
   if(!nome){ alert('Dê um nome para a rota.'); return; }
+  if(stagedPedidoIds.length===0 && !confirm('Nenhum pedido foi marcado para este caminhão. Salvar mesmo assim uma rota vazia?')) return;
+
   const rota = {id:uid(), data, nome, caminhao, motorista, ajudante, mostrarProduto, dataSaida:data};
   state.rotas.push(rota);
-  activeRouteId = rota.id;
+
+  stagedPedidoIds.forEach(pid=>{
+    const p = state.pedidos.find(x=>x.id===pid);
+    if(!p) return;
+    p.status='roteirizado';
+    p.routeId=rota.id;
+    p.obsRota = (stagedObs[pid]||'').trim();
+    state.historico.push({
+      id: uid(),
+      pedidoId: p.id,
+      rotaId: rota.id,
+      rotaNome: rota.nome,
+      caminhao: rota.caminhao,
+      motorista: rota.motorista,
+      ajudante: rota.ajudante,
+      dataSaida: rota.dataSaida,
+      rede: p.rede,
+      loja: p.loja,
+      produto: p.produto,
+      status: 'saiu'
+    });
+  });
+
+  // reset the form and the staging area for the next truck
   document.getElementById('r-nome').value=''; document.getElementById('r-caminhao').value='';
   document.getElementById('r-motorista').value=''; document.getElementById('r-ajudante').value='';
   document.getElementById('r-mostrar-produto').checked = true;
+  stagedPedidoIds = [];
+  stagedObs = {};
+
   save();
-  renderMontar();
-});
-
-document.getElementById('filtro-rede-montar').addEventListener('change', renderMontar);
-
-document.getElementById('chk-mostrar-produto').addEventListener('change', (e)=>{
-  const rota = state.rotas.find(r=>r.id===activeRouteId);
-  if(rota){ rota.mostrarProduto = e.target.checked; save(); }
+  renderMontar(); renderPedidosTable(); renderStats(); renderDashboard();
+  alert(`Caminhão "${rota.nome}" salvo e despachado com ${state.pedidos.filter(p=>p.routeId===rota.id).length} pedido(s)!`);
 });
 
 function renderMontar(){
-  // if no active truck yet (or it no longer exists), default to the most recently created one
-  if(!activeRouteId || !state.rotas.find(r=>r.id===activeRouteId)){
-    const candidatos = state.rotas.filter(r => r.data >= todayStr());
-    activeRouteId = candidatos.length ? candidatos[candidatos.length-1].id : null;
-  }
-  const activeRota = state.rotas.find(r=>r.id===activeRouteId);
-
-  if(!activeRota){
-    document.getElementById('rota-editar-vazia').style.display='block';
-    document.getElementById('rota-editar-conteudo').style.display='none';
-    document.getElementById('montar-rota-atual').textContent = '';
-    return;
-  }
-  document.getElementById('rota-editar-vazia').style.display='none';
-  document.getElementById('rota-editar-conteudo').style.display='block';
-  document.getElementById('montar-rota-atual').textContent = `Adicionando pedidos para: ${fmtDate(activeRota.data)} — ${activeRota.nome}${activeRota.caminhao ? ' · '+activeRota.caminhao : ''}`;
-  document.getElementById('chk-mostrar-produto').checked = activeRota.mostrarProduto !== false;
-
   const filtroRede = document.getElementById('filtro-rede-montar').value;
 
-  const pendentes = state.pedidos.filter(p=> p.status==='pendente' && (!filtroRede || p.rede===filtroRede));
-  const naRota = state.pedidos.filter(p=>p.routeId===activeRouteId);
+  const pendentes = state.pedidos.filter(p=> p.status==='pendente' && !stagedPedidoIds.includes(p.id) && (!filtroRede || p.rede===filtroRede));
+  const naRota = stagedPedidoIds.map(pid => state.pedidos.find(p=>p.id===pid)).filter(Boolean);
 
   document.getElementById('lista-pendentes').innerHTML = pendentes.length ? pendentes.map(p=>`
     <div class="checkrow">
@@ -1038,49 +1050,27 @@ function renderMontar(){
         <span class="titulo">${esc(p.rede)} - ${esc(p.loja)}${p.dataAgendamento ? `<span class="badge-agendado">📅 Agendado: ${fmtDateShort(p.dataAgendamento)}</span>` : ''}</span>
         <span class="produto-sub">${esc(p.produto)}</span>
       </label>
-      <input type="text" class="obs-input" data-obs="${p.id}" placeholder="Observação (ex: só à tarde)" value="${esc(p.obsRota||'')}">
+      <input type="text" class="obs-input" data-obs="${p.id}" placeholder="Observação (ex: só à tarde)" value="${esc(stagedObs[p.id]||'')}">
       <button class="btn sm ghost" data-remove="${p.id}">Tirar</button>
     </div>
   `).join('') : `<div class="empty">Nenhum pedido adicionado ainda.</div>`;
 
   document.querySelectorAll('[data-add]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
-      const p = state.pedidos.find(x=>x.id===cb.dataset.add);
-      if(p && activeRota){
-        p.status='roteirizado'; p.routeId=activeRouteId;
-        state.historico.push({
-          id: uid(),
-          pedidoId: p.id,
-          rotaId: activeRota.id,
-          rotaNome: activeRota.nome,
-          caminhao: activeRota.caminhao,
-          motorista: activeRota.motorista,
-          ajudante: activeRota.ajudante,
-          dataSaida: activeRota.dataSaida || activeRota.data,
-          rede: p.rede,
-          loja: p.loja,
-          produto: p.produto,
-          status: 'saiu'
-        });
-        save(); renderMontar(); renderPedidosTable(); renderStats();
-      }
+      if(!stagedPedidoIds.includes(cb.dataset.add)) stagedPedidoIds.push(cb.dataset.add);
+      renderMontar();
     });
   });
   document.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const p = state.pedidos.find(x=>x.id===btn.dataset.remove);
-      if(p){
-        // correcting the plan before the real dispatch: remove the historico record created by mistake
-        state.historico = state.historico.filter(h => !(h.pedidoId===p.id && h.rotaId===p.routeId && h.status==='saiu'));
-        p.status='pendente'; p.routeId=null; p.obsRota='';
-        save(); renderMontar(); renderPedidosTable(); renderStats();
-      }
+      stagedPedidoIds = stagedPedidoIds.filter(id => id!==btn.dataset.remove);
+      delete stagedObs[btn.dataset.remove];
+      renderMontar();
     });
   });
   document.querySelectorAll('[data-obs]').forEach(inp=>{
     inp.addEventListener('change', ()=>{
-      const p = state.pedidos.find(x=>x.id===inp.dataset.obs);
-      if(p){ p.obsRota = inp.value.trim(); save(); }
+      stagedObs[inp.dataset.obs] = inp.value.trim();
     });
   });
 }
