@@ -152,7 +152,6 @@
   .route-table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
   .route-header{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fbfbfc; color:var(--ink); padding:12px 16px; border-bottom:2px solid var(--blue); border-radius:10px 10px 0 0;}
   .route-header .btn-excluir-rota{margin-left:auto;}
-  .route-date-input{font-family:var(--sans); font-weight:700; font-size:13.5px; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px 9px; background:#fff;}
   .route-header-name{font-family:var(--sans); font-weight:800; font-size:15px; letter-spacing:.01em;}
   .print-only{display:none;}
   .route-table{width:100%; border-collapse:collapse; min-width:560px;}
@@ -1371,14 +1370,14 @@ function renderRoteiro(){
     return `
       <div class="route-table-wrap" style="margin-bottom:20px;">
         <div class="route-header">
-          <input type="date" class="route-date-input no-print" data-route-date="${r.id}" value="${r.data}" title="Alterar a data desta rota">
-          <span class="route-date-print print-only">${fmtDate(r.data)}</span>
+          <span class="route-date-print">${fmtDate(r.data)}</span>
           <span class="route-header-name"> — ${esc(r.nome)}</span>
           <button class="btn sm ghost no-print" data-edit-rota="${r.id}" title="Editar Rota">✏️ Editar Rota</button>
           <button class="btn sm danger btn-excluir-rota no-print" data-delete-route="${r.id}" title="Excluir esta rota">🗑️ Excluir rota</button>
         </div>
         ${editingRouteId===r.id ? `
         <div class="route-edit-panel no-print">
+          <div class="field"><label>Data da rota</label><input type="date" id="edit-data-${r.id}" value="${r.data}"></div>
           <div class="field"><label>Nome da rota</label><input type="text" id="edit-nome-${r.id}" value="${esc(r.nome)}"></div>
           <div class="field"><label>Caminhão</label><input type="text" id="edit-caminhao-${r.id}" value="${esc(r.caminhao||'')}"></div>
           <div class="field"><label>Motorista</label><input type="text" id="edit-motorista-${r.id}" value="${esc(r.motorista||'')}"></div>
@@ -1402,22 +1401,6 @@ function renderRoteiro(){
     `;
   }).join('');
 
-  container.querySelectorAll('[data-route-date]').forEach(inp=>{
-    inp.addEventListener('change', ()=>{
-      const novaData = inp.value;
-      if(!novaData) return;
-      const r = state.rotas.find(x=>x.id===inp.dataset.routeDate);
-      if(!r) return;
-      r.data = novaData;
-      // full migration: EVERY order linked to this route (routeId===r.id) changes date together,
-      // so the route disappears from the old day and exists only on the newly chosen day.
-      state.pedidos.forEach(p=>{ if(p.routeId===r.id) p.data = novaData; });
-      document.getElementById('rt-data').value = novaData;
-      save();
-      renderRoteiro();
-      renderPedidosTable();
-    });
-  });
   container.querySelectorAll('[data-delete-route]').forEach(btn=>{
     btn.addEventListener('click', ()=> excluirRota(btn.dataset.deleteRoute));
   });
@@ -1438,19 +1421,43 @@ function renderRoteiro(){
       const rid = btn.dataset.saveRota;
       const r = state.rotas.find(x=>x.id===rid);
       if(!r) return;
+      const novaData = document.getElementById('edit-data-'+rid).value;
       const novoNome = document.getElementById('edit-nome-'+rid).value.trim();
       const novoCaminhao = document.getElementById('edit-caminhao-'+rid).value.trim();
       const novoMotorista = document.getElementById('edit-motorista-'+rid).value.trim();
       const novoAjudante = document.getElementById('edit-ajudante-'+rid).value.trim();
       if(!novoNome){ alert('O nome da rota não pode ficar vazio.'); return; }
+      if(!novaData){ alert('A data da rota não pode ficar vazia.'); return; }
+
+      const dataMudou = novaData !== r.data;
+
       r.nome = novoNome; r.caminhao = novoCaminhao; r.motorista = novoMotorista; r.ajudante = novoAjudante;
-      // propagate the correction to every historico snapshot tied to this route
+
+      if(dataMudou){
+        r.data = novaData;
+        r.dataSaida = novaData;
+        // full migration: EVERY order linked to this route changes date together, with no leftovers
+        // on the old day — this is what makes the route disappear from the old day entirely.
+        state.pedidos.forEach(p=>{ if(p.routeId===rid) p.data = novaData; });
+      }
+
+      // propagate the correction to every historico snapshot tied to this route (name/team/vehicle
+      // AND the departure date, so Histórico never shows this route stuck on the old day anymore)
       state.historico.forEach(h=>{
-        if(h.rotaId===rid){ h.rotaNome=novoNome; h.caminhao=novoCaminhao; h.motorista=novoMotorista; h.ajudante=novoAjudante; }
+        if(h.rotaId===rid){
+          h.rotaNome=novoNome; h.caminhao=novoCaminhao; h.motorista=novoMotorista; h.ajudante=novoAjudante;
+          if(dataMudou) h.dataSaida = novaData;
+        }
       });
+
       editingRouteId = null;
       save();
-      renderRoteiro(); renderHistorico();
+
+      if(dataMudou){
+        // follow the route to its corrected date so it's visible right where it now belongs
+        document.getElementById('rt-data').value = novaData;
+      }
+      renderRoteiro(); renderPedidosTable(); renderHistorico(); renderDashboard();
     });
   });
   container.querySelectorAll('[data-tirar-da-rota]').forEach(btn=>{
