@@ -180,6 +180,20 @@
   .loja-item-row .obs-txt{color:var(--muted); font-style:italic; font-size:12.5px;}
   .loja-acoes{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
   .loja-concluida{font-size:12.5px; color:var(--green); font-weight:600;}
+
+  /* ---------- TRUCKS ALREADY MOUNTED FOR THE DAY (Build Route) ---------- */
+  .mounted-truck-row{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:12px 14px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:#fafbfc;}
+  .mounted-truck-row:last-child{margin-bottom:0;}
+  .mounted-truck-name{font-weight:700; font-size:13.5px; color:var(--ink);}
+  .mounted-truck-meta{font-size:12px; color:var(--muted);}
+  .mounted-truck-count{font-family:var(--mono); font-weight:700; font-size:13px; color:var(--blue); background:var(--blue-bg); padding:3px 10px; border-radius:20px; white-space:nowrap;}
+
+  /* ---------- ROUTE EDIT PANEL (Daily route header) ---------- */
+  .route-edit-panel{padding:14px 16px; background:#f7f8fa; border-bottom:1px solid var(--line); display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end;}
+  .route-edit-panel .field-actions{display:flex; gap:8px; align-items:end;}
+  .btn-x-remove{background:var(--red-bg); color:var(--red); border:1px solid #eccfc9; border-radius:6px; width:26px; height:26px; font-weight:800; font-size:13px; cursor:pointer; line-height:1; flex-shrink:0;}
+  .btn-x-remove:hover{background:#f5d9d3;}
+  .loja-card-header .btn-x-remove{margin-left:auto;}
   .btn-gigante{border:none; border-radius:12px; padding:24px 10px; font-size:16.5px; font-weight:800; color:#fff; cursor:pointer; text-align:center; letter-spacing:.01em; line-height:1.3;}
   .btn-gigante-verde{background:#3f9d6d;}
   .btn-gigante-verde:hover{background:#358759;}
@@ -365,6 +379,7 @@
     /* ---- Forms: fields stacked at full width ---- */
     .grid-form{grid-template-columns:1fr;}
     .split{grid-template-columns:1fr; gap:20px;}
+    .route-edit-panel{grid-template-columns:1fr;}
 
     /* ---- Order checklists (Montar Rota): stack cleanly, no overlap ---- */
     .checklist{max-height:none;}
@@ -523,6 +538,11 @@
         <div style="margin-top:12px;">
           <label class="checkbox-line"><input type="checkbox" id="r-mostrar-produto" checked> Mostrar produto no espelho impresso desta rota</label>
         </div>
+      </div>
+
+      <div class="card">
+        <h2>Caminhões já Montados para este Dia</h2>
+        <div id="lista-caminhoes-montados"></div>
       </div>
 
       <div class="card">
@@ -980,6 +1000,32 @@ let stagedPedidoIds = [];
 let stagedObs = {};
 
 document.getElementById('filtro-rede-montar').addEventListener('change', renderMontar);
+document.getElementById('r-data').addEventListener('change', renderCaminhoesMontados);
+
+function renderCaminhoesMontados(){
+  const box = document.getElementById('lista-caminhoes-montados');
+  if(!box) return;
+  const data = document.getElementById('r-data').value || todayStr();
+  const doDia = state.rotas.filter(r=>r.data===data);
+
+  if(doDia.length===0){
+    box.innerHTML = `<div class="empty">Nenhum caminhão montado ainda para ${fmtDate(data)}.</div>`;
+    return;
+  }
+
+  box.innerHTML = doDia.map(r=>{
+    const qtdLojas = new Set(state.pedidos.filter(p=>p.routeId===r.id).map(p=> p.rede+'␟'+p.loja)).size;
+    return `
+      <div class="mounted-truck-row">
+        <div>
+          <div class="mounted-truck-name">${esc(r.nome)}${r.caminhao ? ' · '+esc(r.caminhao) : ''}</div>
+          <div class="mounted-truck-meta">${r.motorista ? 'Motorista: '+esc(r.motorista) : 'Motorista não informado'}</div>
+        </div>
+        <span class="mounted-truck-count">${qtdLojas} loja${qtdLojas===1?'':'s'}</span>
+      </div>
+    `;
+  }).join('');
+}
 
 document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
   const data = document.getElementById('r-data').value || todayStr();
@@ -1029,6 +1075,7 @@ document.getElementById('btn-criar-rota').addEventListener('click', ()=>{
 });
 
 function renderMontar(){
+  renderCaminhoesMontados();
   const filtroRede = document.getElementById('filtro-rede-montar').value;
 
   const pendentes = state.pedidos.filter(p=> p.status==='pendente' && !stagedPedidoIds.includes(p.id) && (!filtroRede || p.rede===filtroRede));
@@ -1251,6 +1298,20 @@ function voltouTudo(rede, loja, routeId){
   renderRoteiro(); renderPedidosTable(); renderStats(); renderDashboard(); renderHistorico();
 }
 
+let editingRouteId = null;
+
+function tirarDaRota(rede, loja, routeId){
+  const itens = state.pedidos.filter(p=>p.routeId===routeId && p.rede===rede && p.loja===loja);
+  if(itens.length===0) return;
+  if(!confirm(`Tirar ${rede} ${loja} desta rota? O(s) ${itens.length} produto(s) voltam para pendentes, disponíveis para triagem.`)) return;
+  const ids = itens.map(p=>p.id);
+  itens.forEach(p=>{ p.status='pendente'; p.routeId=null; p.obsRota=''; });
+  // this store was pulled from the plan, not actually returned from the street — remove the "saiu" audit snapshot
+  state.historico = state.historico.filter(h => !(ids.includes(h.pedidoId) && h.rotaId===routeId && h.status==='saiu'));
+  save();
+  renderRoteiro(); renderPedidosTable(); renderStats(); renderDashboard(); renderHistorico();
+}
+
 function renderRoteiro(){
   const data = document.getElementById('rt-data').value || todayStr();
   const rotas = state.rotas.filter(r=>r.data===data);
@@ -1299,6 +1360,7 @@ function renderRoteiro(){
           <div class="loja-card-header">
             <span class="loja-nome">${esc(g.rede)} ${esc(g.loja)}</span>
             ${agendado ? `<span class="badge-agendado">📅 Agendado: ${fmtDateShort(agendado.dataAgendamento)}</span>` : ''}
+            <button class="btn-x-remove no-print" data-tirar-da-rota="${g.rede}␟${g.loja}␟${r.id}" title="Tirar da Rota">✕</button>
           </div>
           <div class="loja-itens">${itensHtml}</div>
           ${acoesHtml}
@@ -1312,8 +1374,21 @@ function renderRoteiro(){
           <input type="date" class="route-date-input no-print" data-route-date="${r.id}" value="${r.data}" title="Alterar a data desta rota">
           <span class="route-date-print print-only">${fmtDate(r.data)}</span>
           <span class="route-header-name"> — ${esc(r.nome)}</span>
+          <button class="btn sm ghost no-print" data-edit-rota="${r.id}" title="Editar Rota">✏️ Editar Rota</button>
           <button class="btn sm danger btn-excluir-rota no-print" data-delete-route="${r.id}" title="Excluir esta rota">🗑️ Excluir rota</button>
         </div>
+        ${editingRouteId===r.id ? `
+        <div class="route-edit-panel no-print">
+          <div class="field"><label>Nome da rota</label><input type="text" id="edit-nome-${r.id}" value="${esc(r.nome)}"></div>
+          <div class="field"><label>Caminhão</label><input type="text" id="edit-caminhao-${r.id}" value="${esc(r.caminhao||'')}"></div>
+          <div class="field"><label>Motorista</label><input type="text" id="edit-motorista-${r.id}" value="${esc(r.motorista||'')}"></div>
+          <div class="field"><label>Ajudante</label><input type="text" id="edit-ajudante-${r.id}" value="${esc(r.ajudante||'')}"></div>
+          <div class="field-actions">
+            <button class="btn amber sm" data-save-rota="${r.id}">Salvar</button>
+            <button class="btn ghost sm" data-cancel-edit-rota="${r.id}">Cancelar</button>
+          </div>
+        </div>
+        ` : ''}
         <div class="route-meta">
           ${r.motorista? '<b>Motorista:</b> '+esc(r.motorista)+' &nbsp;·&nbsp; ':''}
           ${r.ajudante? '<b>Ajudante:</b> '+esc(r.ajudante)+' &nbsp;·&nbsp; ':''}
@@ -1345,6 +1420,44 @@ function renderRoteiro(){
   });
   container.querySelectorAll('[data-delete-route]').forEach(btn=>{
     btn.addEventListener('click', ()=> excluirRota(btn.dataset.deleteRoute));
+  });
+  container.querySelectorAll('[data-edit-rota]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editingRouteId = btn.dataset.editRota;
+      renderRoteiro();
+    });
+  });
+  container.querySelectorAll('[data-cancel-edit-rota]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editingRouteId = null;
+      renderRoteiro();
+    });
+  });
+  container.querySelectorAll('[data-save-rota]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const rid = btn.dataset.saveRota;
+      const r = state.rotas.find(x=>x.id===rid);
+      if(!r) return;
+      const novoNome = document.getElementById('edit-nome-'+rid).value.trim();
+      const novoCaminhao = document.getElementById('edit-caminhao-'+rid).value.trim();
+      const novoMotorista = document.getElementById('edit-motorista-'+rid).value.trim();
+      const novoAjudante = document.getElementById('edit-ajudante-'+rid).value.trim();
+      if(!novoNome){ alert('O nome da rota não pode ficar vazio.'); return; }
+      r.nome = novoNome; r.caminhao = novoCaminhao; r.motorista = novoMotorista; r.ajudante = novoAjudante;
+      // propagate the correction to every historico snapshot tied to this route
+      state.historico.forEach(h=>{
+        if(h.rotaId===rid){ h.rotaNome=novoNome; h.caminhao=novoCaminhao; h.motorista=novoMotorista; h.ajudante=novoAjudante; }
+      });
+      editingRouteId = null;
+      save();
+      renderRoteiro(); renderHistorico();
+    });
+  });
+  container.querySelectorAll('[data-tirar-da-rota]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const [rede, loja, routeId] = btn.dataset.tirarDaRota.split('␟');
+      tirarDaRota(rede, loja, routeId);
+    });
   });
   container.querySelectorAll('[data-portal]').forEach(btn=>{
     btn.addEventListener('click', ()=> window.open(btn.dataset.portal, '_blank'));
